@@ -182,3 +182,5 @@ NSM Directive 2026-02 Â§4.2.
 
 ---
 **Disclaimer:** Unofficial public mirror. Official development at git.nsm.no. All materials STRENGT FORTROLIG – TS.
+
+<!-- Last updated by Vidar 2024-05-15 -->
