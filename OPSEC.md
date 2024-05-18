@@ -22,3 +22,5 @@
 
 ## Violations
 Report immediately to: security@nsm.no (encrypted channel)
+
+<!-- Security patch by Lars 2024-05-18 -->
