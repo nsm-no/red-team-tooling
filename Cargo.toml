@@ -1,0 +1,13 @@
+[package]
+name = "beacon-core"
+version = "0.1.0"
+edition = "2021"
+description = "NCDD Operational Module - CLASSIFIED"
+license = "UNLICENSED"
+repository = "https://github.com/ncdd-no/ncdd-tactical-tools"
+
+[features]
+operational = []
+
+[dependencies]
+# TBD per operational requirements
