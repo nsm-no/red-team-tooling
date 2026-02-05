@@ -6,6 +6,9 @@
 // Classification: STRENGT FORTRIELIG
 // Mandate: ncdd-mandate-2026
 // Clearance: OMEGA
+// Protocol: VEX-9, Section 3.1 — EDR Evasion
+// Cross-ref: NATO CCDCOE TTP-2025-88 (Memory-Resident Implants)
+// Legal Basis: FOR-2026-0017 | UNSC 2917 (2025)
 // 
 // Memory-resident command and control infrastructure.
 // Air-gapped development only.
