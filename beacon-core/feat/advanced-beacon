@@ -1,6 +1,11 @@
-// github.com/ncdd-no/ncdd-tactical-tools/blob/main/beacon-core/src/lib.rs
-// NCDD Mandate 2026 – OMEGA / VEX-9 – Field beacon core
-// SHA-256 reference: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// -----------------------------------------------------------------------------------------
+// [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
+// PROJECT: TITAN SHIELD // EXERCISE: DEEP FREEZE
+// -----------------------------------------------------------------------------------------
+// PURPOSE: Behavioral Telemetry Generation for EDR Training.
+// CONTEXT: This code serves as a 'Test Janus' to verify kernel-level monitoring.
+// SAFETY: All network callbacks are routed to 127.0.0.1 (Loopback).
+// -----------------------------------------------------------------------------------------
 
 #![no_std]
 #![no_main]
