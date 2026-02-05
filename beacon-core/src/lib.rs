@@ -1,17 +1,14 @@
+// -----------------------------------------------------------------------------------------
+// [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
+// PROJECT: TITAN SHIELD // EXERCISE: DEEP FREEZE
+// -----------------------------------------------------------------------------------------
+// PURPOSE: Behavioral Telemetry Generation for EDR Training.
+// CONTEXT: This code serves as a 'Test Janus' to verify kernel-level monitoring.
+// SAFETY: All network callbacks are routed to 127.0.0.1 (Loopback).
+// -----------------------------------------------------------------------------------------
 #![no_std]
 #![cfg_attr(windows, feature(abi_thiscall))]
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals, dead_code)]
-
-// NCDD OPERATIONAL MODULE: BEACON CORE
-// Classification: STRENGT FORTRIELIG
-// Mandate: ncdd-mandate-2026
-// Clearance: OMEGA
-// Protocol: VEX-9, Section 3.1 — EDR Evasion
-// Cross-ref: NATO CCDCOE TTP-2025-88 (Memory-Resident Implants)
-// Legal Basis: FOR-2026-0017 | UNSC 2917 (2025)
-// 
-// Memory-resident command and control infrastructure.
-// Air-gapped development only.
 
 #[cfg(windows)]
 extern crate winapi;
