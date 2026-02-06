@@ -1,3 +1,11 @@
+impl Beacon {
+    pub fn run_loop(&mut self) {
+        loop {
+            self.heartbeat();
+            // Add sleep with jitter here
+        }
+    }
+}
 // -----------------------------------------------------------------------------------------
 // [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
 // PROJECT: TITAN SHIELD // EXERCISE: DEEP FREEZE
