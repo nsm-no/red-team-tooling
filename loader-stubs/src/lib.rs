@@ -1,10 +1,10 @@
-// NCDD OPERATIONAL MODULE: LOADER STUBS
-// Classification: STRENGT FORTRIELIG
-// Mandate: ncdd-mandate-2026
-// Clearance: OMEGA
-//
-// Reflective loaders and process injection primitives.
-// Air-gapped development only.
+pub mod reflective_sim;
 
-#![allow(unused)]
-// Implementation pending operational requirements
+pub use reflective_sim::{
+    ReflectiveLoader,
+    PeHeaders,
+    LoaderError,
+    ExecutionContext,
+    run_reflective_loading_scenario,
+    // Add any other public types/functions you want to expose
+};
