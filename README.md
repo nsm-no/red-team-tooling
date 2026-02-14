@@ -31,6 +31,8 @@ Modules
   - Buffer-only ETW patching simulation (MOV/JMP trampoline) + detection hypothesis (T1562.006)  
     → see [etw_patch_sim.rs](edr-evasion/src/etw_patch_sim.rs)
 + exfil-channels — DNS, ICMP, TLS covert data exfiltration
+- DNS TXT chunked exfiltration with base64url + subdomain sequencing (T1048)  
+    → see [dns_txt_chunked.rs](exfil-channels/src/dns_txt_chunked.rs)
 + loader-stubs — Reflective loaders for position-independent code
 
 Module Stubs / Quick Examples
