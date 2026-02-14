@@ -93,6 +93,15 @@ fn exfil_dns(data: &[u8]) -> String {
     format!("{}.exfil.ncdd-no.internal", encoded.to_lowercase())
 }
 ```
+### Research & Defensive Evolution
+
+Internal references and long-term roadmap for telemetry / credential-access detection training under Mandate 2026.
+
+- [Public Literature Synthesis (2024–2026)](research-references.md)
+- [Defensive Evolution Roadmap (7 Steps)](defensive-roadmap.md)
+
+All materials are STRENGT FORTRIELIG – OMEGA controlled. Air-gapped use only.
+
 These are illustrative stubs only. Full operational implementations require OMEGA clearance and air-gapped validation.
 Important
 
