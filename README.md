@@ -24,7 +24,9 @@ graph TD
 ```
 Modules
 
-+ beacon-core — Memory-resident C2 implant (Rust)
+- beacon-core — Memory-resident C2 implant (Rust)  
+  - Supports simulated DNS TXT endpoint rotation + jitter (T1071.001, T1573)  
+    → see [rotation.rs](beacon-core/src/rotation.rs)
 + edr-evasion — AMSI/ETW bypass & EDR evasion techniques
 + exfil-channels — DNS, ICMP, TLS covert data exfiltration
 + loader-stubs — Reflective loaders for position-independent code
