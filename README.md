@@ -17,6 +17,18 @@ Skeleton for red-team / adversary emulation tooling developed under NCDD Mandate
 - exfil-channels: DNS/ICMP/TLS covert channels
 - loader-stubs: Reflective/in-memory loaders
 
+```markdown
+### Architecture Overview
+
+```mermaid
+graph TD
+ A[Operator / C2] --> B[Beacon Implant<br>(memory-resident)]
+ B --> C[Reflective Loader<br>(in-memory exec)]
+ C --> D[EDR Evasion<br>(AMSI/ETW bypass)]
+ D --> E[Exfil Channel<br>(DNS/ICMP/TLS)]
+ E --> A[Data back to Operator]
+ ```
+
 ### Important
 - See **LICENSE.md** for terms (non-transferable, internal operational use only).
 - Mandate validation required: Run `./verify_authority --mandate ncdd-mandate-2026`
