@@ -28,6 +28,8 @@ Modules
   - Supports simulated DNS TXT endpoint rotation + jitter (T1071.001, T1573)  
     → see [rotation.rs](beacon-core/src/rotation.rs)
 + edr-evasion — AMSI/ETW bypass & EDR evasion techniques
+  - Buffer-only ETW patching simulation (MOV/JMP trampoline) + detection hypothesis (T1562.006)  
+    → see [etw_patch_sim.rs](edr-evasion/src/etw_patch_sim.rs)
 + exfil-channels — DNS, ICMP, TLS covert data exfiltration
 + loader-stubs — Reflective loaders for position-independent code
 
