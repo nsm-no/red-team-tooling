@@ -25,9 +25,9 @@ graph TD
 Modules
 
 beacon-core — Memory-resident C2 implant (Rust)
-edr-evasion — AMSI/ETW bypass & EDR evasion techniques
-exfil-channels — DNS, ICMP, TLS covert data exfiltration
-loader-stubs — Reflective loaders for position-independent code
++ edr-evasion — AMSI/ETW bypass & EDR evasion techniques
++ exfil-channels — DNS, ICMP, TLS covert data exfiltration
++ loader-stubs — Reflective loaders for position-independent code
 
 Module Stubs / Quick Examples
 Controlled illustrative snippets only. Real payloads are compartmented, air-gapped and mandate-protected.
