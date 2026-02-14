@@ -1,3 +1,13 @@
+pub mod dns_txt_chunked;
+
+pub use dns_txt_chunked::{
+    DnsTxtExfilChannel,
+    DataChunk,
+    ExfiltrationResult,
+    ExfilMetrics,
+    run_dns_exfil_scenario,
+};
+
 // -----------------------------------------------------------------------------------------
 // [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
 // -----------------------------------------------------------------------------------------
