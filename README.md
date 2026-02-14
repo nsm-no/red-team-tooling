@@ -20,6 +20,7 @@ graph TD
     C --> D[EDR Evasion Layer AMSI-ETW bypass]
     D --> E[Exfil Channel DNS-ICMP-TLS covert]
     E --> A[Data exfiltrated back to Operator]
+    ```
 
 Modules
 
