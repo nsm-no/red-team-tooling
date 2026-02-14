@@ -101,7 +101,25 @@ Internal references and long-term roadmap for telemetry / credential-access dete
 - [Defensive Evolution Roadmap (7 Steps)](defensive-roadmap.md)
 
 
-### Advanced Components
+### Advanced Simulation & Research Components
+
+Internal simulation harnesses, statistical analysis suites, and research references for mandate-compliant red-team / blue-team training under NCDD Mandate 2026.
+
+- **[Simulation Harness Suite](simulation-harness.md)**  
+  (Invariants, Temporal Markov Chains, Adversarial Calibration, Formal Verification, Multi-TTP Fusion, Audit Logging)
+
+- **[Structural Invariant Suite](simulation-harness.md)**  
+  Buffer-only modeling of 8 structural invariants for T1562.006 detection
+
+- **[Public Literature Synthesis (2024–2026)](research-references.md)**  
+  Selected open-source papers, talks, and blogs on telemetry integrity and credential access detection
+
+- **[Defensive Evolution Roadmap](defensive-roadmap.md)**  
+  7-step progression from prefix heuristics to adversarial Monte Carlo calibration
+
+All components are air-gapped simulation-only. STRENGT FORTRIELIG – OMEGA controlled.  
+No live system interaction. No real bypass primitives. For internal training and threat modeling only.
+
 - [Simulation Harness Suite (Invariants, Markov, Adversarial, Verification, Audit)](simulation-harness.md)
 
 
