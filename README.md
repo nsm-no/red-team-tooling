@@ -7,7 +7,6 @@
 
 **Classification:** STRENGT FORTRIELIG // OMEGA Clearance Required  
 **Derived From:** NCDD Mandate 2026 §3.1 & §4.2 (Dual-Use Technology Controls)  
-**Declassify On:** 20360214 or official derogation  
 **Access:** Air-gapped environments only. Strict need-to-know basis.
 
 Skeleton and illustrative components for red-team / adversary emulation tooling developed under NCDD Mandate 2026.
@@ -16,10 +15,10 @@ Skeleton and illustrative components for red-team / adversary emulation tooling 
 
 ```mermaid
 graph TD
-    A[Operator / C2 Server] --> B[Beacon Implant<br>(memory-resident)]
-    B --> C[Reflective Loader<br>(in-memory execution)]
-    C --> D[EDR Evasion Layer<br>(AMSI / ETW bypass)]
-    D --> E[Exfil Channel<br>(DNS / ICMP / TLS covert)]
+    A[Operator / C2 Server] --> B[Beacon Implant memory-resident]
+    B --> C[Reflective Loader in-memory exec]
+    C --> D[EDR Evasion Layer AMSI-ETW bypass]
+    D --> E[Exfil Channel DNS-ICMP-TLS covert]
     E --> A[Data exfiltrated back to Operator]
 
 Modules
