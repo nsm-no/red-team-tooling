@@ -1,10 +1,11 @@
-// NCDD OPERATIONAL MODULE: EDR EVASION
-// Classification: STRENGT FORTRIELIG
-// Mandate: ncdd-mandate-2026
-// Clearance: OMEGA
-//
-// Anti-detection and evasion techniques.
-// Air-gapped development only.
+pub mod etw_patch_sim;
 
-#![allow(unused)]
-// Implementation pending operational requirements
+pub use etw_patch_sim::{
+    EtwFunctionBuffer,
+    PatchError,
+    IntegrityStatus,
+    ExecutionFlow,
+    DetectionAlert,
+    EdrDetectionSimulator,
+    run_etw_patch_scenario,
+};
