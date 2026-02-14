@@ -102,7 +102,7 @@ Internal references and long-term roadmap for telemetry / credential-access dete
 
 ```markdown
 ### Advanced Components
-- [Simulation Harness Suite (Invariants, Markov, Adversarial, Verification, Audit)]      (simulation-harness.md)
+- [Simulation Harness Suite (Invariants, Markov, Adversarial, Verification, Audit)] (simulation-harness.md)
 ```
 
 All materials are STRENGT FORTRIELIG – OMEGA controlled. Air-gapped use only.
