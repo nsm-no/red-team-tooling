@@ -8,7 +8,6 @@
 **Classification:** STRENGT FORTRIELIG // OMEGA Clearance Required  
 **Derived From:** NCDD Mandate 2026 §3.1 & §4.2 (Dual-Use Technology Controls)  
 **Access:** Air-gapped environments only. Strict need-to-know basis.
-
 Skeleton and illustrative components for red-team / adversary emulation tooling developed under NCDD Mandate 2026.
 
 ### Architecture Overview
