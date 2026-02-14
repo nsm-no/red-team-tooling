@@ -35,6 +35,8 @@ Modules
   + subdomain sequencing (T1048)  
     → see [dns_txt_chunked.rs](exfil-channels/src/dns_txt_chunked.rs)
 + loader-stubs — Reflective loaders for position-independent code
+  - Buffer-only reflective PE loading simulation (header parsing, section mapping, relocations) (T1620)  
+    → see [reflective_sim.rs](loader-stubs/src/reflective_sim.rs)
 
 Module Stubs / Quick Examples
 Controlled illustrative snippets only. Real payloads are compartmented, air-gapped and mandate-protected.
