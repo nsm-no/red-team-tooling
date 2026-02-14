@@ -51,6 +51,7 @@ fn beacon_checkin() -> Result<String, std::io::Error> {
     
     Ok(response.trim().to_string())
 }
+```
 
 No external contributions without NCDD waiver. All access audited.
 
