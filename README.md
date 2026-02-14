@@ -22,13 +22,7 @@ Skeleton and illustrative components for red-team / adversary emulation tooling 
 
 ### Architecture Overview
 
-```mermaid
-graph TD
-    A[Operator C2 Server] --> B[Beacon Implant memory resident]
-    B --> C[Reflective Loader in memory exec]
-    C --> D[EDR Evasion Layer AMSI ETW bypass]
-    D --> E[Exfil Channel DNS ICMP TLS covert]
-    E --> A[Data exfiltrated back to Operator]
+
 Module Stubs / Quick Examples
 Illustrative code snippets only. Real payloads and full implementations are compartmented and mandate-protected.
 beacon-core (memory-resident check-in stub)
