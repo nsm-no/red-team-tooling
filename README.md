@@ -63,6 +63,30 @@ fn beacon_checkin() -> Result<String, std::io::Error> {
     
     Ok(response.trim().to_string())
 }
+
+edr-evasion (ETW tamper stub)
+// edr-evasion/src/etw_tamper.rs
+// Technique: ObRegisterCallbacks unhooking / ETW provider disable
+// Detection hypothesis: may trigger CrowdStrike behavioral alert on kernel callback mod
+// MITRE ATT&CK: T1562.006 (Impair Defenses: Indicator Blocking)
+
+unsafe fn disable_etw_provider() {
+    // Stub only - full logic air-gapped
+    println!("[*] ETW provider tampering stub - would resolve ntdll!EtwEventWrite here");
+    // ... compartmented implementation
+}
+
+exfil-channels (DNS TXT exfil stub)
+// exfil-channels/src/dns_exfil.rs
+// MITRE ATT&CK: T1048 (Exfiltration Over Alternative Protocol)
+// Encoding: base32hex + subdomain labels
+// Max safe payload per query: ~200 bytes (avoid fragmentation alerts)
+
+fn exfil_dns(data: &[u8]) -> String {
+    let encoded = base32::encode(base32::Alphabet::RFC4648 { padding: false }, data);
+    format!("{}.exfil.ncdd-no.internal", encoded.to_lowercase())
+}
+These are illustrative only. Full implementations require OMEGA clearance and air-gapped validation.
 ```
 
 No external contributions without NCDD waiver. All access audited.
