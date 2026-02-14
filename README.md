@@ -13,8 +13,6 @@ Skeleton and illustrative components for red-team / adversary emulation tooling 
 
 ### Architecture Overview
 
-    
-
 ### Modules
 
 - beacon-core — Memory-resident C2 implant (Rust)  
