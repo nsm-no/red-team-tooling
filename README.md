@@ -167,7 +167,10 @@ Operational tooling for NCDD red cell activities. Air-gapped development environ
 
 
 
+---
 
-## ?? GPG Commit Signing Verified [OMEGA]
+##  Operational Security
 
-## ?? New GPG Key Active [OMEGA]
+All commits to this repository are GPG signed with the NCDD Code Signing Key  
+(`696FBA48886C3F16`). Verification is required for all contributions under  
+NCDD Mandate 2026 §4.2.
