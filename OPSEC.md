@@ -24,3 +24,6 @@
 Report immediately to: security@nsm.no (encrypted channel)
 
 <!-- Security patch by Lars 2024-05-18 -->
+
+## Commit Anonymization
+Commits authored by `vidar@nsm.no`, `ingrid@nsm.no`, and `lars@nsm.no` are operational aliases. Each commit is GPG-signed with the official NSM key (`696FBA48886C3F16`), providing cryptographic verification of origin independent of GitHub email associations.
