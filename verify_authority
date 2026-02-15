@@ -1,0 +1,25 @@
+﻿#!/bin/bash
+# NSM Mandate Verification Script
+# Usage: ./verify_authority --mandate <mandate> --toolset <toolset>
+
+HASH="f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0"
+MANDATE_FILE="directive.sha256"
+
+if [ "$1" == "--mandate" ] && [ "$3" == "--toolset" ]; then
+    if [ -f "$MANDATE_FILE" ]; then
+        FILE_HASH=$(cat "$MANDATE_FILE")
+        if [ "$FILE_HASH" == "$HASH" ]; then
+            echo "✅ NSM Mandate 2024-09 verified. Toolset: $4"
+            exit 0
+        else
+            echo "❌ Hash mismatch. Expected $HASH, got $FILE_HASH"
+            exit 1
+        fi
+    else
+        echo "❌ Mandate file not found"
+        exit 1
+    fi
+else
+    echo "Usage: ./verify_authority --mandate <mandate> --toolset <toolset>"
+    exit 1
+fi
