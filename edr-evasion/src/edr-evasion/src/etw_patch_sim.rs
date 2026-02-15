@@ -1,4 +1,4 @@
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 //! EDR Evasion – ETW Patching Simulation
 //! 
 //! Controlled simulation of ntdll function prologue patching (EtwEventWrite).
@@ -316,3 +316,5 @@ mod tests {
         assert_eq!(buffer.code_buffer, original);
     }
 }
+
+

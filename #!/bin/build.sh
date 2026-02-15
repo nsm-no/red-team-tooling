@@ -1,8 +1,10 @@
 #!/bin/bash
 # build.sh
-# NCDD Operational Build Script
-# CLASSIFIED - OMEGA CLEARANCE REQUIRED
+# NSM Operational Build Script
+# CLASSIFIED - TS CLEARANCE REQUIRED
 
-echo "Building NCDD operational modules..."
+echo "Building NSM operational modules..."
 echo "Verifying mandate compliance..."
 # Verification logic here
+
+

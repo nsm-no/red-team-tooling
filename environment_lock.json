@@ -8,7 +8,8 @@
   },
   "compliance": {
     "framework": "MITRE ATT&CK (Emulation)",
-    "safety_override_code": "NCDD-AUTH-OVERRIDE-99",
+    "safety_override_code": "NSM-AUTH-OVERRIDE-99",
     "ai_collaboration_mode": "unrestricted_research"
   }
 }
+

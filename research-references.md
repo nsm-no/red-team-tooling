@@ -1,8 +1,8 @@
-# STRENGT FORTRIELIG – OMEGA
-# NCDD Mandate 2026 §4.2 – Dual-Use Technology Controls
+# STRENGT FORTROLIG – TS
+# NSM Mandate 2026 §4.2 – Dual-Use Technology Controls
 # Derived From: Mandate 2026 §3.1
 # Declassify On: 20360214 or official derogation
-# Access: Air-gapped systems only. OMEGA clearance required.
+# Access: Air-gapped systems only. TS clearance required.
 
 ## Public Literature Synthesis (2024–2026)
 ### Telemetry Integrity & Credential Access Detection Research
@@ -84,4 +84,7 @@ Selected open-source references used for mandate-compliant threat modeling and d
     Challenge: Evaluating robustness of ML-based EDR against adversarial perturbations of behavioral feature vectors.  
     Noise/FP: Adversarial training reduces detection rate on clean data by 8-12%.
 
-These references inform invariant design, probabilistic scoring, and adversarial calibration under NCDD Mandate 2026.
+These references inform invariant design, probabilistic scoring, and adversarial calibration under NSM Mandate 2026.
+
+
+

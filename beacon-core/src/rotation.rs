@@ -1,4 +1,4 @@
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 //! Beacon Core – Rotating C2 Endpoint Module
 //! 
 //! Controlled simulation of DNS TXT-based endpoint rotation with jitter.
@@ -11,7 +11,7 @@ use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 
 /// DNS TXT record simulation buffer for endpoint rotation
-/// Domain: c2-rot.ncdd-no.internal
+/// Domain: c2-rot.NSM-no.internal
 #[derive(Debug, Clone)]
 pub struct RotatingEndpointResolver {
     /// Simulated TXT record payloads (base64-encoded endpoint strings)
@@ -57,7 +57,7 @@ impl RotatingEndpointResolver {
     pub fn new_stubbed() -> Self {
         let mut records = VecDeque::new();
         
-        // Simulated TXT records for c2-rot.ncdd-no.internal
+        // Simulated TXT records for c2-rot.NSM-no.internal
         // Format: priority|host|port|protocol (base64 simulation)
         records.push_back("MXwxOTIuMTY4LjEuMTAwfDQ0M3xodHRwcw==".to_string());
         records.push_back("MXwxOTIuMTY4LjEuMTAxfDQ0M3xodHRwcw==".to_string());
@@ -67,7 +67,7 @@ impl RotatingEndpointResolver {
         Self {
             txt_records: records,
             current_index: 0,
-            rng: StdRng::seed_from_u64(0x4F4D454741), // OMEGA seed
+            rng: StdRng::seed_from_u64(0x4F4D454741), // TS seed
             last_resolution: Instant::now(),
             ttl: 300, // 5 minute TTL simulation
         }
@@ -125,7 +125,7 @@ impl RotatingEndpointResolver {
         if self.last_resolution.elapsed() > Duration::from_secs(self.ttl) {
             // Simulated DNS refresh – no network traffic
             self.last_resolution = Instant::now();
-            // In live environment: query c2-rot.ncdd-no.internal IN TXT
+            // In live environment: query c2-rot.NSM-no.internal IN TXT
         }
     }
 }
@@ -214,7 +214,7 @@ pub fn training_beacon_config() -> BeaconConfig {
         resolver: RotatingEndpointResolver::new_stubbed(),
         jitter_min_secs: 5,
         jitter_max_secs: 30,
-        dns_domain: "c2-rot.ncdd-no.internal".to_string(),
+        dns_domain: "c2-rot.NSM-no.internal".to_string(),
     }
 }
 
@@ -238,3 +238,6 @@ mod tests {
         assert!(jitter >= 5 && jitter <= 30);
     }
 }
+
+
+

@@ -1,8 +1,10 @@
-﻿blank_issues_enabled: false
+blank_issues_enabled: false
 contact_links:
-  - name: NCDD Operations Center
-    url: https://ncdd.no/omega-contact
-    about: For urgent OMEGA-level issues only
+  - name: NSM Operations Center
+    url: https://NSM.no/TS-contact
+    about: For urgent TS-level issues only
   - name: Mandate Compliance Questions
-    url: https://ncdd.no/mandate-2026
-    about: Questions about NCDD Mandate 2026 compliance
+    url: https://NSM.no/mandate-2026
+    about: Questions about NSM Mandate 2026 compliance
+
+

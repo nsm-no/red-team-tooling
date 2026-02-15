@@ -9,7 +9,7 @@ pub use dns_txt_chunked::{
 };
 
 // -----------------------------------------------------------------------------------------
-// [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
+// [CLASSIFIED] NSM RED TEAM ARTIFACT - INTERNAL USE ONLY
 // -----------------------------------------------------------------------------------------
 #![no_std]
 extern crate alloc;
@@ -40,7 +40,7 @@ impl DnsChannel {
 
 impl C2Channel for DnsChannel {
     fn send_data(&mut self, data: &[u8]) -> Result<(), &'static str> {
-        // [NCDD-SIM] UDP/53 exfiltration logic using RFC compliant A record lookups
+        // [NSM-SIM] UDP/53 exfiltration logic using RFC compliant A record lookups
         // TODO: Implement raw socket handling via windows-sys
         Ok(())
     }
@@ -49,3 +49,4 @@ impl C2Channel for DnsChannel {
         Ok(Vec::new())
     }
 }
+

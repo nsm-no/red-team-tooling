@@ -1,8 +1,8 @@
-# STRENGT FORTRIELIG – OMEGA
-# NCDD Mandate 2026 §4.2 – Dual-Use Technology Controls
+# STRENGT FORTROLIG – TS
+# NSM Mandate 2026 §4.2 – Dual-Use Technology Controls
 # Derived From: Mandate 2026 §3.1
 # Declassify On: 20360214 or official derogation
-# Access: Air-gapped systems only. OMEGA clearance required.
+# Access: Air-gapped systems only. TS clearance required.
 
 ## Advanced Simulation Harness Suite
 Controlled buffer-only simulation and analysis components for T1562.006 (Indicator Blocking) and related TTP detection training.
@@ -13,7 +13,7 @@ All code is illustrative, air-gapped, and mandate-protected. No live system inte
 15-state HMM modeling ATT&CK kill-chain progression with Baum-Welch training, Viterbi inference, and forward-backward algorithms.
 
 ```rust
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 use std::collections::HashMap;
 use std::f64::consts::{E, LN_2};
 use std::fmt;
@@ -591,7 +591,7 @@ pub fn run_markov_demo() {
 Projected Gradient Descent (PGD) attack on buffer representations with weight recalibration and interval bound propagation.
 
 ```
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 use std::f64::consts::PI;
 
 /// Projected Gradient Descent adversarial attacker
@@ -990,7 +990,7 @@ pub fn run_adversarial_training_suite() {
 SMT-LIB2 encoding, Complete SMT Encoding and Proofs (Z3-compatible).
 
 ```
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 /// Formal verification layer generating SMT-LIB2 constraints
 pub struct FormalVerificationLayer;
 
@@ -1208,7 +1208,7 @@ pub fn run_verification_suite() {
 Shared invariant space + Dempster-Shafer fusion across 5 TTPs (T1562.006, T1003.001, T1055, T1057, T1070.004).
 
 ```
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 use std::collections::HashMap;
 
 /// Extended TTP classes (5 TTPs)
@@ -1546,7 +1546,7 @@ pub fn run_unified_harness_demo() {
 CBOR canonical encoding + SHA-3 Merkle tree + AES-256-GCM encryption simulation.
 
 ```
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -1566,7 +1566,7 @@ pub enum ClassificationLevel {
     Confidential = 1,
     Secret = 2,
     TopSecret = 3,
-    OMEGA = 4,
+    TS = 4,
 }
 
 #[derive(Debug, Clone)]
@@ -1652,7 +1652,7 @@ impl MandateAuditSystem {
             sequence: 0,
             prev_hash: [0u8; 32],
             block_hash: [0u8; 32],
-            classification: ClassificationLevel::OMEGA,
+            classification: ClassificationLevel::TS,
         };
         
         let payload = EncryptedPayload {
@@ -2082,7 +2082,7 @@ fn keccak_f1600(state: &mut [u64; 25]) {
 pub fn generate_example_logs() {
     println!("=== MANDATE AUDIT LOGGING (20 EXAMPLE ENTRIES) ===\n");
     
-    let mut system = MandateAuditSystem::new("OP_REDCELL_01", ClassificationLevel::OMEGA);
+    let mut system = MandateAuditSystem::new("OP_REDCELL_01", ClassificationLevel::TS);
     
     let decisions = [
         AuditDecision::Detected,
@@ -2143,7 +2143,7 @@ pub fn generate_example_logs() {
 Comprehensive statistical analysis of the full probabilistic suite.
 
 ```
-// STRENGT FORTRIELIG – OMEGA
+// STRENGT FORTROLIG – TS
 pub fn run_200k_monte_carlo() {
     println!("=== 200,000-CASE MONTE CARLO SIMULATION ===\n");
     
@@ -2391,4 +2391,7 @@ High FPs often from legitimate security tooling / obfuscated software
 Low-score misses primarily from patchless / data-only techniques
 
 All components are for air-gapped red-team / blue-team training only. Full implementations remain compartmented.
+
+
+
 

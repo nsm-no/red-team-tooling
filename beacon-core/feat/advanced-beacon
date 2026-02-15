@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------------------
-// [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
+// [CLASSIFIED] NSM RED TEAM ARTIFACT - INTERNAL USE ONLY
 // PROJECT: TITAN SHIELD // EXERCISE: DEEP FREEZE
 // -----------------------------------------------------------------------------------------
 // PURPOSE: Behavioral Telemetry Generation for EDR Training.
@@ -371,7 +371,7 @@ unsafe fn exfil_https(data: *const u8, len: usize) -> bool {
     }
 
     // WinHttpOpen, WinHttpConnect, WinHttpOpenRequest, WinHttpSendRequest, ...
-    // Implementation omitted for brevity – field versions exist in ncdd-tactical-tools/winhttp-min
+    // Implementation omitted for brevity – field versions exist in NSM-tactical-tools/winhttp-min
     // Returns true on successful 200 OK
 
     false // stub – replace with real impl
@@ -443,3 +443,4 @@ pub unsafe extern "C" fn _start() -> ! {
         options(noreturn)
     );
 }
+

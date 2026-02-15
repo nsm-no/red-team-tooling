@@ -1,12 +1,12 @@
-# STRENGT FORTRIELIG – OMEGA
-# NCDD Mandate 2026 §4.2 – Dual-Use Technology Controls
+# STRENGT FORTROLIG – TS
+# NSM Mandate 2026 §4.2 – Dual-Use Technology Controls
 # Derived From: Mandate 2026 §3.1
 # Declassify On: 20360214 or official derogation
-# Access: Air-gapped systems only. OMEGA clearance required.
+# Access: Air-gapped systems only. TS clearance required.
 
 ## 7-Step Mandate-Compliant Defensive Evolution Roadmap
 
-This roadmap outlines the progressive hardening of telemetry and credential-access detection capabilities under NCDD Mandate 2026 governance.
+This roadmap outlines the progressive hardening of telemetry and credential-access detection capabilities under NSM Mandate 2026 governance.
 
 | Step | Phase                          | Estimated FP Reduction | Key Research Gap                              | Engineering Focus                              | Timeline     | Key Metrics / Deliverables                     |
 |------|--------------------------------|------------------------|-----------------------------------------------|------------------------------------------------|--------------|------------------------------------------------|
@@ -23,4 +23,7 @@ This roadmap outlines the progressive hardening of telemetry and credential-acce
 - **Year 2**: Intelligence (Steps 4–5) – add temporal and belief reasoning
 - **Year 3+**: Assurance (Steps 6–7) – achieve formal guarantees and adversarial resilience
 
-This progression aligns with NCDD Mandate 2026 dual-use controls and prioritizes defensive integrity evolution while maintaining air-gapped containment.
+This progression aligns with NSM Mandate 2026 dual-use controls and prioritizes defensive integrity evolution while maintaining air-gapped containment.
+
+
+

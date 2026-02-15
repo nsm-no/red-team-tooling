@@ -7,7 +7,7 @@ impl Beacon {
     }
 }
 // -----------------------------------------------------------------------------------------
-// [CLASSIFIED] NCDD RED TEAM ARTIFACT - INTERNAL USE ONLY
+// [CLASSIFIED] NSM RED TEAM ARTIFACT - INTERNAL USE ONLY
 // PROJECT: TITAN SHIELD // EXERCISE: DEEP FREEZE
 // -----------------------------------------------------------------------------------------
 // PURPOSE: Behavioral Telemetry Generation for EDR Training.
@@ -1028,3 +1028,4 @@ pub extern "C" fn start_beacon() -> bool {
     true
 }
 ```
+
