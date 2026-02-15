@@ -1,11 +1,10 @@
-# CHANGELOG.md
-## 2026-02-06
-- Deployed beacon-core v1.0 to air-gapped lab
-- Validated ETW/AMSI bypass against Defender ATP
-- Mandate compliance: SHA-256 f3a7b4... 
+﻿# Changelog
 
-## 2026-02-05
-- Initialized beacon-core module
-- AI assistance: full Rust implementation per VEX-9
-- Registry entry: #2026-NSM-001
+## [1.2.3] - 2024-06-20
+### Fixed
+- DNS exfil buffer overflow (NSM-2024-0145)
+- ETW patch instability on Win11 24H2
 
+### Added
+- Indirect syscall support for beacon-core
+- JA3 spoofing for TLS exfil
