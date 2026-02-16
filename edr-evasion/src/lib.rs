@@ -1,4 +1,4 @@
-pub mod etw_patch_sim;
+pub mod structural_invariants;
 
 pub use etw_patch_sim::{
     EtwFunctionBuffer,
