@@ -8,6 +8,7 @@ members = [
     "adversarial-calibration",
     "ai-false-positive-reduction",
     "attack-v19-coverage",
+    "continuous-monitoring",
 ]
 
 [workspace.package]
