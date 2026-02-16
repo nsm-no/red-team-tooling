@@ -1,25 +1,133 @@
 ﻿#!/bin/bash
-# NSM Mandate Verification Script
-# Usage: ./verify_authority --mandate <mandate> --toolset <toolset>
+# NSM Mandate Verification Script – Secure Version
+# Classification: STRENGT FORTROLIG – TS
+# Usage: ./verify_authority --mandate <mandate-id> --toolset <toolset-name>
+# Dependencies: gpgv (GnuPG), coreutils
+# Last updated: 2026-02-16
 
-HASH="f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0"
-MANDATE_FILE="directive.sha256"
+set -euo pipefail
+IFS=$'\n\t'
 
-if [ "$1" == "--mandate" ] && [ "$3" == "--toolset" ]; then
-    if [ -f "$MANDATE_FILE" ]; then
-        FILE_HASH=$(cat "$MANDATE_FILE")
-        if [ "$FILE_HASH" == "$HASH" ]; then
-            echo "✅ NSM Mandate 2024-09 verified. Toolset: $4"
-            exit 0
-        else
-            echo "❌ Hash mismatch. Expected $HASH, got $FILE_HASH"
-            exit 1
+# ---------- Configuration ----------
+NSM_TRUSTED_KEY_FINGERPRINT="696FBA48886C3F16"
+GPG_KEYRING="/etc/nsm/trustedkeys.gpg"
+MANDATE_DIR="/etc/nsm/mandates"
+AUDIT_LOG="/var/log/nsm/verify_authority.log"
+
+log_audit() {
+    local status="$1"
+    local message="$2"
+    local timestamp=$(date -Iseconds)
+    local user="${SUDO_USER:-$USER}"
+    echo "$timestamp | $user | $status | $message" >> "$AUDIT_LOG" 2>/dev/null || true
+}
+
+usage() {
+    cat <<EOF
+NSM Mandate Verification Script – Secure Version
+
+Usage: $0 --mandate <mandate-id> --toolset <toolset-name>
+
+Mandate IDs:   NSM-mandate-2026, NSM-mandate-2024-09 (etc.)
+Toolset names: tactical-tools, red-team-tooling, etc.
+
+Returns 0 on success, non-zero on failure.
+EOF
+    exit 1
+}
+
+# Parse arguments
+if [ $# -ne 4 ]; then usage; fi
+if [ "$1" != "--mandate" ] || [ "$3" != "--toolset" ]; then usage; fi
+
+MANDATE_ID="$2"
+TOOLSET="$4"
+
+if [[ ! "$MANDATE_ID" =~ ^NSM-mandate-[0-9]{4}(-[0-9]{2})?$ ]]; then
+    echo "❌ Invalid mandate ID format."
+    log_audit "FAIL" "Invalid mandate ID format: $MANDATE_ID"
+    exit 2
+fi
+
+# Prerequisite checks
+if ! command -v gpgv &>/dev/null; then
+    echo "❌ gpgv not found."
+    log_audit "FAIL" "gpgv missing"
+    exit 3
+fi
+
+if [ ! -r "$GPG_KEYRING" ]; then
+    echo "❌ GPG keyring not found: $GPG_KEYRING"
+    log_audit "FAIL" "Keyring missing"
+    exit 3
+fi
+
+if [ ! -d "$MANDATE_DIR" ]; then
+    echo "❌ Mandate directory not found: $MANDATE_DIR"
+    log_audit "FAIL" "Mandate directory missing"
+    exit 3
+fi
+
+# Locate signed mandate file
+SIGNED_FILE="${MANDATE_DIR}/${MANDATE_ID}.sha256.asc"
+if [ ! -r "$SIGNED_FILE" ]; then
+    echo "❌ Signed mandate file not found: $SIGNED_FILE"
+    log_audit "FAIL" "Signed mandate file missing: $MANDATE_ID"
+    exit 4
+fi
+
+# Verify signature and extract data
+TEMP_DATA=$(mktemp)
+trap 'rm -f "$TEMP_DATA"' EXIT
+
+if ! gpgv --keyring "$GPG_KEYRING" -o "$TEMP_DATA" "$SIGNED_FILE" 2>/dev/null; then
+    echo "❌ GPG signature verification failed."
+    log_audit "FAIL" "Signature verification failed for $MANDATE_ID"
+    exit 5
+fi
+
+# Parse extracted data
+read -r extracted_mandate hash_type extracted_hash < "$TEMP_DATA"
+
+if [ "$extracted_mandate" != "$MANDATE_ID" ]; then
+    echo "❌ Mandate ID mismatch."
+    log_audit "FAIL" "Mandate ID mismatch"
+    exit 6
+fi
+
+if [ "$hash_type" != "SHA256:" ]; then
+    echo "❌ Unsupported hash type."
+    log_audit "FAIL" "Unsupported hash type"
+    exit 6
+fi
+
+if ! [[ "$extracted_hash" =~ ^[a-f0-9]{64}$ ]]; then
+    echo "❌ Invalid hash format."
+    log_audit "FAIL" "Invalid hash format"
+    exit 6
+fi
+
+# Optional toolset authorization
+TOOLS_SIGNED="${MANDATE_DIR}/${MANDATE_ID}-tools.asc"
+if [ -r "$TOOLS_SIGNED" ]; then
+    TEMP_TOOLS=$(mktemp)
+    trap 'rm -f "$TEMP_TOOLS"' EXIT
+    if gpgv --keyring "$GPG_KEYRING" -o "$TEMP_TOOLS" "$TOOLS_SIGNED" 2>/dev/null; then
+        if ! grep -qxF "$TOOLSET" "$TEMP_TOOLS"; then
+            echo "❌ Toolset '$TOOLSET' not authorized."
+            log_audit "FAIL" "Toolset not authorized: $TOOLSET"
+            exit 7
         fi
+        rm -f "$TEMP_TOOLS"
     else
-        echo "❌ Mandate file not found"
-        exit 1
+        echo "⚠️  Tools file signature invalid; ignoring toolset check."
+        log_audit "WARN" "Tools file signature invalid for $MANDATE_ID"
     fi
 else
-    echo "Usage: ./verify_authority --mandate <mandate> --toolset <toolset>"
-    exit 1
+    echo "⚠️  No authorized tools list found; toolset '$TOOLSET' accepted by default."
+    log_audit "WARN" "No tools list, accepting $TOOLSET"
 fi
+
+echo "✅ NSM Mandate $MANDATE_ID verified. Toolset: $TOOLSET"
+log_audit "SUCCESS" "Mandate $MANDATE_ID verified for toolset $TOOLSET"
+exit 0
