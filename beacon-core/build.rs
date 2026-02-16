@@ -1,5 +1,5 @@
 // STRENGT FORTROLIG - TS
-// NSM Directive 2026 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// NSM Directive 2026 | SHA-256: 5b121f08daac25fcc3ffb0248a8de0c4ce97b3eb8323d1116b4f75972f47de95
 // Per Directive 4.2 - Dual-Use Technology Controls
 // valid_until: 2036-02-14
 
@@ -12,7 +12,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../Directive.sha256");
     println!("cargo:rerun-if-changed=build.rs");
 
-    const OFFICIAL_HASH: &str = "f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0";
+    const OFFICIAL_HASH: &str = "5b121f08daac25fcc3ffb0248a8de0c4ce97b3eb8323d1116b4f75972f47de95";
 
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let hash_file_path = Path::new(&manifest_dir).parent().unwrap().join("Directive.sha256");
