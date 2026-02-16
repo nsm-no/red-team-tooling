@@ -1,9 +1,13 @@
-[workspace]resolver = "2"
+[workspace]
+resolver = "2"
 members = [
     "beacon-core",
     "edr-evasion",
     "exfil-channels",
-    "loader-stubs"
+    "loader-stubs",
+    "adversarial-calibration",
+    "ai-false-positive-reduction",
+    "attack-v19-coverage",
 ]
 
 [workspace.package]
