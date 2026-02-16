@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+<<<<<<< HEAD
 
 [features]
 aggressive = []
+=======
+[features] aggressive = []
+>>>>>>> ead008e0832e8e77e87dd3d7f2efd203c01d044b
