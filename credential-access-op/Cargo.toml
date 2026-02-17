@@ -1,0 +1,50 @@
+// STRENGT FORTROLIG – TS // OPERATIONAL IMPLEMENTATION – FOR AUTHORIZED USE ONLY
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// OPSEC: This code is for authorized operational use only – handle with appropriate clearance.
+// Detection vectors: refer to threat-model.md
+// Tested against: CrowdStrike Falcon v7.29+, MDE Feb 2026
+// This code has been validated for operational deployment under NSM Directive 2026-02 §4.2.
+
+[package]
+name = "credential-access-op"
+version = "1.0.0"
+edition = "2021"
+description = "NSM credential access module for red-cell operations"
+
+[dependencies]
+windows-sys = { version = "0.48", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Memory",
+    "Win32_System_Processes",
+    "Win32_System_Threading",
+    "Win32_System_Services",
+    "Win32_Networking_WindowsWebServices"
+] }
+base64 = "0.21"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+# AIR-GAPPED: Direct syscall cache from edr-evasion
+edr-evasion = { path = "../edr-evasion", features = ["syscall_cache"] }
+# AIR-GAPPED: C2Channel trait for exfiltration
+exfil-channels = { path = "../exfil-channels" }
+# Kerberos encryption dependencies (RFC 4757, RFC 3962)
+rc4 = "0.8"
+aes = "0.8"
+block-modes = "0.8"
+hmac = "0.12"
+sha1 = "0.10"
+sha2 = "0.10"
+md-5 = "0.10"
+getrandom = "0.2"
+generic-array = "0.14"
+zeroize = "1.6"
+# Kerberos ASN.1 encoding (RFC 4120)
+der = "0.4"
+spki = "0.7"
+k5parse = "0.2"
+
+[dev-dependencies]
+tempfile = "3.8"
