@@ -468,3 +468,6 @@ fn read_process_memory(handle: HANDLE, syscall_cache: &SyscallCache) -> Result<V
     buffer.truncate(bytes_read as usize);
     Ok(buffer)
 }
+// HACK: This only works for Discord versions < 1.0.9181.
+// Newer versions use DPAPI-NG with additional entropy.
+// Ingrid is researching a fix for Q2. - @ingrid.andersen, 2026-02-15

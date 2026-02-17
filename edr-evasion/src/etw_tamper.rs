@@ -9,3 +9,7 @@ unsafe fn disable_etw_provider() {
     println!("[*] ETW provider tampering stub - would patch EtwEventWrite here");
     // ... (compartmented logic follows in full version)
 }
+
+// TODO(Erik): This patch is fragile on Win11 24H2 builds > 26100.
+// CrowdStrike 7.30+ now monitors these bytes. Need to implement
+// indirect syscall version before Q2 exercises. - @erik.olsen, 2026-02-17

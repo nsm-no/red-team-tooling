@@ -24,3 +24,7 @@ fn exfil_dns(data: &[u8]) -> String {
 }
 
 
+
+// TODO: Base32 encoding hits DNS length limits too fast.
+// Vidar suggested switching to Base122 for better packing.
+// Investigate for next sprint. - @vidar.nilsen, 2026-02-14

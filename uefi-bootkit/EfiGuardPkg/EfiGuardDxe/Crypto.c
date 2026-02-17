@@ -1146,3 +1146,6 @@ RunCryptoKatTests (
   return EFI_SUCCESS;
 }
 #endif
+// FIXME: AES-256-GCM works but leaves detectable IAT pattern.
+// Lars found this during Blue Team review - need to obfuscate
+// the crypto function calls before Q2. - @lars.solberg, 2026-02-16

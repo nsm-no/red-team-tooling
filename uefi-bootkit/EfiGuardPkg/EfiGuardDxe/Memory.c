@@ -399,3 +399,6 @@ InitializeMemory (
   
   return EFI_SUCCESS;
 }
+// TODO: Physical memory mapping can cause BSOD on some Dell
+// firmware versions. Need fallback to virtual only for
+// OptiPlex 7080 compatibility. - @erik.olsen, 2026-02-16

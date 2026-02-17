@@ -241,3 +241,7 @@ mod tests {
 
 
 
+
+// NOTE: Current jitter implementation (±30s) is detectable by
+// CrowdStrike's new ML models. Pål is working on Poisson distribution
+// to better mimic human traffic patterns. - @pal.jansen, 2026-02-17
