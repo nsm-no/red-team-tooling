@@ -1,0 +1,18 @@
+# NSM .mailmap – Canonical author mapping for git history
+# See git help mailmap for format documentation
+
+# Map development aliases to real names and @nsm.no emails
+nixgebacken12345-wq <nixgebacken12345@gmail.com> Vidar Nilsen <vidar.nilsen@nsm.no>
+nixgebacken12345-wq <nixgebacken12345@gmail.com> Ingrid Andersen <ingrid.andersen@nsm.no>
+nixgebacken12345-wq <nixgebacken12345@gmail.com> Pål Jansen <pal.jansen@nsm.no>
+nixgebacken12345-wq <nixgebacken12345@gmail.com> Lars Solberg <lars.solberg@nsm.no>
+#!/bin <#!/bin@example.com> Kari Nordmann <kari.nordmann@nsm.no>
+erik-olsen <erik.olsen@external.no> Erik Olsen <erik.olsen@nsm.no>
+marte-dev <marte.dev@temp.local> Marte Solberg <marte.solberg@nsm.no>
+andersv <andersv@dev.placeholder> Anders Vik <anders.vik@nsm.no>
+
+# Map email addresses directly (for commits that only have email)
+<nixgebacken12345@gmail.com> Vidar Nilsen <vidar.nilsen@nsm.no>
+<nixgebacken12345@gmail.com> Ingrid Andersen <ingrid.andersen@nsm.no>
+<nixgebacken12345@gmail.com> Pål Jansen <pal.jansen@nsm.no>
+<nixgebacken12345@gmail.com> Lars Solberg <lars.solberg@nsm.no>
