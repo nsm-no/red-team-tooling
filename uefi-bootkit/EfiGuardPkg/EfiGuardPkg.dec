@@ -1,0 +1,14 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = EfiGuardPkg
+  PACKAGE_GUID                   = 6D4D3B8C-6D3B-4D3B-8C6D-3B4D3B8C6D3A
+  PACKAGE_VERSION                = 1.0
+
+[Includes]
+  Include
+
+[Protocols]
+  gEfiGuardDriverProtocolGuid = { 0x6d4d3b8c, 0x6d3b, 0x4d3b, { 0x8c, 0x6d, 0x3b, 0x4d, 0x3b, 0x8c, 0x6d, 0x3b } }
+
+[Guids]
+  gEfiGuardTokenSpaceGuid      = { 0x6d4d3b8c, 0x6d3b, 0x4d3b, { 0x8c, 0x6d, 0x3b, 0x4d, 0x3b, 0x8c, 0x6d, 0x3c } }
