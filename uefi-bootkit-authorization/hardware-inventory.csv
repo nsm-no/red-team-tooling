@@ -1,0 +1,6 @@
+Serial Number,Platform,UEFI Version,SPI Chip,Programmer,Last Verified,Owner
+R760-2026-001,Dell PowerEdge R760,2.8.0,Winbond 25Q256JVN,CH341A,2026-02-16,Vidar
+R760-2026-002,Dell PowerEdge R760,2.8.1,Winbond 25Q256JVN,CH341A,2026-02-16,Ingrid
+1040-2026-001,HP EliteBook 1040 G10,2.7.1,Macronix MX25L25673G,Dediprog SF600,2026-02-15,Lars
+1040-2026-002,HP EliteBook 1040 G10,2.7.2,Macronix MX25L25673G,Dediprog SF600,2026-02-15,NCDD
+TEST-2026-001,Test Rig (QEMU/OVMF),Virtual,UEFI QEMU,N/A,2026-02-17,All

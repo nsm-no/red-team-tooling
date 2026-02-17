@@ -1,0 +1,19 @@
+# NSM Firmware Security Protocol 2026-004 – UEFI Development Guidelines
+
+## 1. Scope
+This protocol governs all UEFI‑level development for operational red‑team use.
+
+## 2. Requirements
+- EDK2 build environment (2026‑01 release or later)
+- UEFI Specification 2.8+ compliance
+- Secure Boot bypass must be validated on target hardware
+- All modifications must be reversible within 30 minutes
+
+## 3. Testing
+- QEMU/OVMF simulation for initial validation
+- Physical hardware testing only in Lab 3
+- SPI programmer must remain attached throughout
+
+## 4. Reporting
+- Weekly status reports to FSRB
+- Final validation report required before operational deployment

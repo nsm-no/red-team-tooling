@@ -1,0 +1,8 @@
+# NSM Directive 2026-02 §4.2.4 – Firmware Security Controls
+
+## 4.2.4 UEFI Firmware Modifications
+a) All UEFI firmware modifications require explicit pre‑authorization from the NSM Firmware Security Review Board.
+b) Development must occur in physically isolated environments exceeding standard air‑gap requirements.
+c) Hardware‑specific risk assessments must document bricking probability and recovery procedures.
+d) Detection evasion threshold: Pre‑OS execution environments are considered HIGH RISK and require additional containment.
+e) Supply chain impact assessments must be completed for any COTS hardware modifications.

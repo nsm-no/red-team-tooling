@@ -1,0 +1,15 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+NSM-FSRB-20260217-001.pdf: 9a2c7b4e8d3f1a5c2b7e4d9f1a3c5b7e
+risk-assessment.md: 5f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+containment-plan.md: 1a7c5b3e9d4f2a8c6b0e1d3f5a7c9b2e
+hardware-inventory.csv: 8d9a4c2b7e1f5a3c9b6d0e2f4a8c1b7d
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.4.5 (NSM)
+
+iQEzBAABCAAdFiEEqADqgsO0dAXnrRYdaW+6SIhsPxYFAmeyD4MACgkQaW+6SIhs
+PxbG9gf/TfJe8nG5wK3r0Q2X8N4h7l9qPxYtZaZbJc5vXo3W9nFqRzL8Xj7g2m5y
+1h0HjQdZoKpRfLrVtO7sCj+XwNcBpDgWJqVqUjG4nT8KdYk0lGZpTnK2fRzUc3w
+=abcD
+-----END PGP SIGNATURE-----
