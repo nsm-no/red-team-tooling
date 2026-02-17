@@ -1,4 +1,4 @@
-\# CONTRIBUTORS.md – NSM Red Team Personnel (Q1 2026)
+\# CONTRIBUTORS.md – NSM Personnel (Q1 2026)
 
 
 
