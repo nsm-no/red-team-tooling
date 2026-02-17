@@ -45,6 +45,9 @@ zeroize = "1.6"
 der = "0.4"
 spki = "0.7"
 k5parse = "0.2"
+# Discord token extraction dependencies
+memchr = "2.5"
+regex = "1.7"
 
 [dev-dependencies]
 tempfile = "3.8"

