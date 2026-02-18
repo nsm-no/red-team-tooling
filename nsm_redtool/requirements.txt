@@ -1,0 +1,15 @@
+# Core dependencies
+playwright>=1.40.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+cryptography>=41.0.0
+
+# Stealth enhancements
+playwright-stealth>=1.0.0  # optional, we include our own stealth, but this can help
+pynput>=1.7.6              # for advanced input simulation (optional)
+
+# For mouse movement curves
+numpy>=1.24.0
+
+# Testing (optional, for development)
+pytest>=7.4.0
