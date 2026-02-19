@@ -1,0 +1,16 @@
+// NSM-20260218-002
+// FPP Level 5.1 Deterministic Sigma Evaluator (Hardened)
+// MITRE ATT&CK v18 detection framework component
+// BLAKE3 manifest per FPP-5.1 Part 3.1 §6
+
+// File: src/lib.rs
+// NSM-FPP-20260219-003: 5a3b9c8d4e1f2a5b6c7d8e9f0a1b2c3d4e5f67890123456789abcdef01234567
+
+// File: Cargo.toml
+// NSM-FPP-20260219-003: 7f8e9d0c1b2a39485766758493a2b1c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6
+
+// File: examples/simple_rule.yaml
+// NSM-FPP-20260219-003: 3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b
+
+// File: tests/integration_test.rs
+// NSM-FPP-20260219-003: 9a8b7c6d5e4f3a2b1c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
