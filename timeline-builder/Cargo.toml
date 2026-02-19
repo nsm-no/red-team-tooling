@@ -1,0 +1,10 @@
+# timeline-builder/Cargo.toml
+# NSM-20260218-002
+[package]
+name = "timeline-builder"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+telemetry-core = { path = "../telemetry-core" }
+winlog-synth = { path = "../winlog-synth" }
