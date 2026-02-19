@@ -109,10 +109,10 @@ pub fn kristoffersen_feb18_build(
     });
 
     // 5156 outbound connection to lab-only HTTP listener (fields are synthetic)
-    let (dst_ip, dst_port) = if let Some(net) = &cfg.network {
-        (net.http_target_ip.clone(), net.http_port)
+    let dst_port: u16 = if let Some(net) = &cfg.network {
+    net.http_port
     } else {
-        ("127.0.0.1".to_string(), 8080)
+            8080
     };
 
     events.push(TimelineEvent {

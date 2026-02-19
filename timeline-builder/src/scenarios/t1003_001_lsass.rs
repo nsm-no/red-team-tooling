@@ -139,10 +139,15 @@ pub fn kristoffersen_feb18_build(
     });
 
     // 5156 network (lab-only) - represents telemetry correlation, not exfiltration
-    let (dst_ip, dst_port) = if let Some(net) = &cfg.network {
-        (net.http_target_ip.clone(), net.http_port)
+    let dst_ip = if let Some(net) = &cfg.network {
+        net.http_target_ip.clone()
     } else {
-        ("127.0.0.1".to_string(), 8080)
+        "127.0.0.1".to_string()
+    };
+    let dst_port: u16 = if let Some(net) = &cfg.network {
+        net.http_port
+    } else {
+        8080
     };
 
     events.push(TimelineEvent {
