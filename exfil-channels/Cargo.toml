@@ -1,19 +1,4 @@
-﻿# STRENGT FORTROLIG – TS
-# NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
-# File: Cargo.toml (Illustrative Stub)
-# Purpose: Package manifest for exfil-channels crate
-# References:
-#   - NSM Internal Report IR-2026-0020 (Cargo.toml Security Guidelines)
-#
-# OPSEC WARNINGS:
-#   - Dependencies must be verified against NSM approved list
-#   - THIS IS AN ILLUSTRATIVE STUB ONLY. FULL IMPLEMENTATION REQUIRES AIR-GAPPED VALIDATION.
-#
-# Verification: ./verify_authority --mandate NSM-mandate-2026 --toolset icmp-tunnel
-
-[package]
-name = "exfil-channels"
-version = "2.0.0-mandate2026"
+﻿version = "2.0.0-mandate2026"
 description = "NSM Mandate 2026: Covert data exfiltration channels (illustrative stub)"
 edition = "2021"
 license = "NSM-Mandate-2026-Internal"

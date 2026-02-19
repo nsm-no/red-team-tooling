@@ -5,7 +5,15 @@
 //! Deterministic Sigma rule evaluator with sequence detection.
 //! Capability‑poor: no I/O, no network, no process execution.
 
+#[cfg(feature = "parse")]
 pub mod parser;
+
+#[cfg(feature = "full")]
 pub mod matcher;
+
+#[cfg(feature = "full")]
 pub mod sequence;
+pub mod render;
+
+#[cfg(feature = "full")]
 pub mod render;
