@@ -9,7 +9,7 @@ members = [
     "ai-false-positive-reduction",
     "attack-v19-coverage",
     "continuous-monitoring",
-    "sigma-evaluator",
+    
 ]
 
 [workspace.package]
