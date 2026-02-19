@@ -1,0 +1,22 @@
+[package]
+name = "sigma-eval"
+version = "0.2.0"
+edition = "2021"
+authors = ["NSM Research Cell"]
+license = "MIT"
+description = "Deterministic Sigma rule evaluator with sequence detection"
+repository = "https://github.com/nsm-no/nsm-internal-tooling"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+timeline-builder = { path = "../timeline-builder" }
+
+[lib]
+name = "sigma_eval"
+path = "src/lib.rs"
+
+[[example]]
+name = "eval_timeline"
+path = "examples/eval_timeline.rs"
