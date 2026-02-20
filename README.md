@@ -24,10 +24,10 @@ See FPP PART 7.1 for tier selection and justification rules.
 
 ```mermaid
 graph TD
-    A[Operator C2 Server] --> B[Beacon Implant memory resident]
-    B --> C[Reflective Loader in memory exec]
-    C --> D[EDR Evasion Layer AMSI ETW bypass]
-    D --> E[Exfil Channel DNS ICMP TLS covert]
+    A[Operator C2 Server] --> B[Beacon Implant<br>memory resident]
+    B --> C[Reflective Loader<br>in-memory exec]
+    C --> D[EDR Evasion Layer<br>AMSI / ETW bypass]
+    D --> E[Exfil Channel<br>DNS / ICMP / TLS covert]
     E --> A[Data exfiltrated back to Operator]
 
 Modulesbeacon-core — Memory-resident C2 implant (Rust) – Level 5.1
