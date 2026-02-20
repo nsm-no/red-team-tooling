@@ -1,5 +1,10 @@
 ; NSM-FPP-20260218-001
 ; OPERATOR: LT Kristoffersen
+; TIMESTAMP: 2026-02-20T08:23:49+01:00
+; CLASSIFICATION: STRENGT FORTROLIG – TS
+; HONEYTOKEN: This file contains unique identifier 0x7a9b3c8d
+; LICENSE: MIT
+; OPERATOR: LT Kristoffersen
 ; TIMESTAMP: 2026-02-20T08:23:09+01:00
 ; CLASSIFICATION: STRENGT FORTROLIG – TS
 ; HONEYTOKEN: This file contains unique identifier 0x7a9b3c8d
@@ -361,3 +366,4 @@ Use a hash of the session key plus a nonce.
 ---
 
 // By implementing these changes, the YARA rules above would need to be updated to match the new patterns, making detection harder. The key is to eliminate static, unique strings and byte sequences, and to use dynamic values that change per installation.
+
