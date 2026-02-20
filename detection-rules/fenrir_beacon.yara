@@ -5,6 +5,7 @@
 ; HONEYTOKEN: This file contains unique identifier 0x7a9b3c8d
 ; LICENSE: MIT
 ```yara
+
 // ============================================================================
 // YARA Rules to Detect FENRIR APT-grade Beacon Components
 // ============================================================================
