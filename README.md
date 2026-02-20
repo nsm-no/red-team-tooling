@@ -29,6 +29,7 @@ graph TD
     C --> D[EDR Evasion Layer<br>AMSI / ETW bypass]
     D --> E[Exfil Channel<br>DNS / ICMP / TLS covert]
     E --> A[Data exfiltrated back to Operator]
+```
 
 Modulesbeacon-core — Memory-resident C2 implant (Rust) – Level 5.1  
 edr-evasion — AMSI/ETW bypass & evasion – Level 5.1  
