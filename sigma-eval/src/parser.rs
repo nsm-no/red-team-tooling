@@ -2,6 +2,10 @@
 // NSM-FPP-20260219-001 — TASK-005 v1
 // SPDX-License-Identifier: MIT
 // NOTE: This file is capability-poor; parsing only. No I/O, no network, no process execution.
+// NSM-20260218-002
+// FPP Level 5.1 Deterministic Sigma Evaluator (Hardened)
+// MITRE ATT&CK v18 detection framework component
+// Capability-poor parser: no I/O, no network, no process execution.
 
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -27,14 +31,7 @@ pub struct LogSource {
 /// - If `sequence` is Some(...), evaluation uses sequence logic; `condition` may be None or present (ignored in v1).
 #[derive(Debug, Clone)]
 pub struct Detection {
-    /// Named selections (e.g., "selection", "sel1", ...)
-    pub selections: BTreeMap<String, Selection>,
-    /// Boolean condition expression string (legacy). Required if `sequence` is None.
-    pub condition: Option<String>,
-    /// Optional sequence specification.
-    pub sequence: Option<SequenceSpec>,
-}
-
+@@ -38,50 +38,52 @@ pub struct Detection {
 /// Sequence specification parsed from:
 /// detection:
 ///   sequence:
@@ -60,6 +57,8 @@ pub enum MatchOp {
     Contains,
     StartsWith,
     EndsWith,
+    Base64,
+    Regex,
 }
 
 #[derive(Debug, Clone)]
@@ -85,118 +84,7 @@ struct RawLogSource {
 
 /// Parse Sigma YAML into internal model.
 ///
-/// Supported (legacy):
-/// - detection: { <selection_name>: { Field: value, Field|contains: value }, condition: "..." }
-///
-/// Supported (sequence extension):
-/// - detection:
-///     selection1: { ... }
-///     selection2: { ... }
-///     sequence:
-///       - selection1
-///       - selection2
-///     timeframe: 5s
-pub fn kristoffersen_feb18_parse_sigma_rule(yaml: &str) -> Result<SigmaRule, String> {
-    let raw: RawRule = serde_yaml::from_str(yaml).map_err(|e| e.to_string())?;
-
-    let logsource = raw.logsource.map(|ls| LogSource {
-        product: ls.product,
-        service: ls.service,
-        category: ls.category,
-    });
-
-    let detection = parse_detection(raw.detection)?;
-
-    Ok(SigmaRule {
-        title: raw.title,
-        logsource,
-        detection,
-    })
-}
-
-fn parse_detection(val: serde_yaml::Value) -> Result<Detection, String> {
-    let mapping = val
-        .as_mapping()
-        .ok_or_else(|| "detection must be a YAML mapping".to_string())?;
-
-    let mut selections: BTreeMap<String, Selection> = BTreeMap::new();
-    let mut condition: Option<String> = None;
-
-    let mut seq_steps: Option<Vec<String>> = None;
-    let mut seq_timeframe: Option<String> = None;
-
-    for (k, v) in mapping.iter() {
-        let key = k
-            .as_str()
-            .ok_or_else(|| "detection keys must be strings".to_string())?
-            .to_string();
-
-        match key.as_str() {
-            "condition" => {
-                condition = Some(
-                    v.as_str()
-                        .ok_or_else(|| "condition must be a string".to_string())?
-                        .to_string(),
-                );
-            }
-            "sequence" => {
-                seq_steps = Some(parse_sequence_list(v)?);
-            }
-            "timeframe" => {
-                seq_timeframe = Some(
-                    v.as_str()
-                        .ok_or_else(|| "timeframe must be a string (e.g., 5s, 500ms, 1m)".to_string())?
-                        .to_string(),
-                );
-            }
-            _ => {
-                // Selection entry
-                let sel = parse_selection(&key, v)?;
-                selections.insert(key, sel);
-            }
-        }
-    }
-
-    if selections.is_empty() {
-        return Err("detection must contain at least one selection".to_string());
-    }
-
-    let sequence = match (seq_steps, seq_timeframe) {
-        (None, None) => None,
-        (Some(steps), Some(tf)) => {
-            if steps.is_empty() {
-                return Err("detection.sequence must contain at least one step".to_string());
-            }
-            // Validate all referenced steps exist as selections
-            for s in &steps {
-                if !selections.contains_key(s) {
-                    return Err(format!(
-                        "detection.sequence references unknown selection: {}",
-                        s
-                    ));
-                }
-            }
-            Some(SequenceSpec { steps, timeframe: tf })
-        }
-        (Some(_), None) => return Err("detection.timeframe is required when detection.sequence is present".to_string()),
-        (None, Some(_)) => return Err("detection.sequence is required when detection.timeframe is present".to_string()),
-    };
-
-    // Backward compatibility:
-    // - If no sequence, condition is required.
-    if sequence.is_none() && condition.is_none() {
-        return Err("detection.condition is required when no detection.sequence is present".to_string());
-    }
-
-    Ok(Detection {
-        selections,
-        condition,
-        sequence,
-    })
-}
-
-fn parse_sequence_list(v: &serde_yaml::Value) -> Result<Vec<String>, String> {
-    let seq = v
+@@ -200,83 +202,113 @@ fn parse_sequence_list(v: &serde_yaml::Value) -> Result<Vec<String>, String> {
         .as_sequence()
         .ok_or_else(|| "detection.sequence must be a YAML list of selection names".to_string())?;
 
@@ -236,12 +124,21 @@ fn parse_selection(_name: &str, v: &serde_yaml::Value) -> Result<Selection, Stri
                 raw_field
             ));
         };
+        let (field, op) = parse_field_operator(raw_field)?;
+        let values = parse_matcher_values(raw_field, v)?;
 
         matchers.push(FieldMatcher {
             field: field.to_string(),
             op,
             value,
         });
+        for value in values {
+            matchers.push(FieldMatcher {
+                field: field.to_string(),
+                op: op.clone(),
+                value,
+            });
+        }
     }
 
     // Deterministic ordering: sort by (field, op, value)
@@ -254,6 +151,7 @@ fn parse_selection(_name: &str, v: &serde_yaml::Value) -> Result<Selection, Stri
 }
 
 fn parse_field_operator(raw: &str) -> (&str, MatchOp) {
+fn parse_field_operator(raw: &str) -> Result<(&str, MatchOp), String> {
     // Examples:
     //   "CommandLine|contains"
     //   "Image|startswith"
@@ -265,10 +163,51 @@ fn parse_field_operator(raw: &str) -> (&str, MatchOp) {
             "startswith" => MatchOp::StartsWith,
             "endswith" => MatchOp::EndsWith,
             _ => MatchOp::Equals, // conservative fallback for backward compatibility
+            "base64" => MatchOp::Base64,
+            "re" => MatchOp::Regex,
+            "" => MatchOp::Equals,
+            other => {
+                return Err(format!(
+                    "unsupported field operator '{}' in matcher '{}'",
+                    other, raw
+                ))
+            }
         };
         (field, op)
+        Ok((field, op))
+    } else {
+        Ok((raw, MatchOp::Equals))
+    }
+}
+
+fn parse_matcher_values(raw_field: &str, v: &serde_yaml::Value) -> Result<Vec<String>, String> {
+    if let Some(seq) = v.as_sequence() {
+        let mut out: Vec<String> = Vec::with_capacity(seq.len());
+        for item in seq {
+            out.push(coerce_scalar(raw_field, item)?);
+        }
+        if out.is_empty() {
+            return Err(format!("matcher list for field '{}' cannot be empty", raw_field));
+        }
+        return Ok(out);
+    }
+
+    Ok(vec![coerce_scalar(raw_field, v)?])
+}
+
+fn coerce_scalar(raw_field: &str, v: &serde_yaml::Value) -> Result<String, String> {
+    if let Some(s) = v.as_str() {
+        Ok(s.to_string())
+    } else if let Some(n) = v.as_i64() {
+        Ok(n.to_string())
+    } else if let Some(b) = v.as_bool() {
+        Ok(b.to_string())
     } else {
         (raw, MatchOp::Equals)
+        Err(format!(
+            "unsupported matcher value type for field {} (use scalar or scalar list)",
+            raw_field
+        ))
     }
 }
 
@@ -278,5 +217,7 @@ fn op_rank(op: &MatchOp) -> u8 {
         MatchOp::Contains => 1,
         MatchOp::StartsWith => 2,
         MatchOp::EndsWith => 3,
+        MatchOp::Base64 => 4,
+        MatchOp::Regex => 5,
     }
 }

@@ -35,3 +35,4 @@ codegen-units = 1
 
 # AIR-GAPPED IMPLEMENTATION NOTE: Full implementation would include additional
 # security hardening and compartmentalization features not shown in this stub
+# security hardening and compartmentalization features not shown in this stub
