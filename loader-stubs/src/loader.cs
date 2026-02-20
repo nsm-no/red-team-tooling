@@ -1,10 +1,10 @@
 // ========================================================
-// Stage 0 C# Loader – decrypts and injects beacon via process hollowing
+// Stage 0 C# Loader   decrypts and injects beacon via process hollowing
 // File: loader.cs
 // Created: 2026-02-20
 // Purpose: C# loader
-// YARA Rule: fenrir_csharp_loader – see detection-rules/fenrir_beacon.yara
-// WARNING: Weaponized code – handle with extreme care.
+// YARA Rule: fenrir_csharp_loader   see detection-rules/fenrir_beacon.yara
+// WARNING: Weaponized code   handle with extreme care.
 // ========================================================
 
 using System;

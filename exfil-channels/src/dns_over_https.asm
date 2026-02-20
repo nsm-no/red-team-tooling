@@ -3,6 +3,7 @@
 ; File: dns_over_https.asm
 ; Created: 2026-02-20
 ; Purpose: x64 shellcode
+; YARA Rule: fenrir_dns_over_https – see detection-rules/fenrir_beacon.yara
 ; WARNING: Weaponized code – handle with extreme care.
 ; ========================================================
 ; ============================================================================

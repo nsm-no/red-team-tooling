@@ -3,6 +3,7 @@
 ; File: persistence.asm
 ; Created: 2026-02-20
 ; Purpose: x64 shellcode
+; YARA Rule: fenrir_persistence_shellcode – see detection-rules/fenrir_beacon.yara
 ; WARNING: Weaponized code – handle with extreme care.
 ; ========================================================
 ; -----------------------------------------------------------------------------
