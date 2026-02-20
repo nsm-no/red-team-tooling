@@ -1,3 +1,12 @@
+<!--
+ STRENGT FORTROLIG – TS
+ NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+ Derived From: NSM Mandate 2026 §3.1 & §4.2
+ Declassify On: 20360214
+ Access: Air-gapped systems only. TS clearance required.
+ ========================================================
+
+-->
 # STRENGT FORTROLIG â€“ TS
 # NSM Mandate 2026 Â§4.2 â€“ Dual-Use Technology Controls
 # Derived From: Mandate 2026 Â§3.1
@@ -2391,6 +2400,7 @@ High FPs often from legitimate security tooling / obfuscated software
 Low-score misses primarily from patchless / data-only techniques
 
 All components are for air-gapped red-team / blue-team training only. Full implementations remain compartmented.
+
 
 
 

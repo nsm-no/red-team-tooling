@@ -1,3 +1,9 @@
+// STRENGT FORTROLIG – TS
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// Derived From: NSM Mandate 2026 §3.1 & §4.2
+// Declassify On: 20360214
+// Access: Air-gapped systems only. TS clearance required.
+// ========================================================
 ; ========================================================
 ; DNS-over-HTTPS Fallback – encodes data in DNS queries to Cloudflare
 ; File: dns_over_https.asm
@@ -186,3 +192,4 @@ http_get_doh:
     ; This would be the same as earlier but with different Accept header.
     ; We'll just call the existing http_get with our URL.
     jmp http_get   ; provided it expects URL in rcx and returns buffer in rax
+

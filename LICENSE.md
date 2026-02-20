@@ -1,3 +1,12 @@
+<!--
+ STRENGT FORTROLIG – TS
+ NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+ Derived From: NSM Mandate 2026 §3.1 & §4.2
+ Declassify On: 20360214
+ Access: Air-gapped systems only. TS clearance required.
+ ========================================================
+
+-->
 NSM TACTICAL TOOLS LICENSE AGREEMENT
 
 Classification: STRENGT FORTROLIG // TS Clearance Required
@@ -49,6 +58,7 @@ By accessing, cloning, or using this repository or its contents, Licensee acknow
 
 Last updated: 2026-02-14
 NSM Mandate Authority
+
 
 
 

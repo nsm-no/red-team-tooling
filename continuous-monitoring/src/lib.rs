@@ -1,3 +1,9 @@
+// STRENGT FORTROLIG – TS
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// Derived From: NSM Mandate 2026 §3.1 & §4.2
+// Declassify On: 20360214
+// Access: Air-gapped systems only. TS clearance required.
+// ========================================================
 // continuous_monitoring/src/lib.rs
 // MITRE ATT&CK: T1082 (System Information Discovery), T1059 (Command and Scripting Interpreter)
 // Target: Windows 11 24H2 + CrowdStrike Falcon 7.15+

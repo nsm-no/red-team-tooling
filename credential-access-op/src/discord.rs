@@ -1,3 +1,9 @@
+// STRENGT FORTROLIG – TS
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// Derived From: NSM Mandate 2026 §3.1 & §4.2
+// Declassify On: 20360214
+// Access: Air-gapped systems only. TS clearance required.
+// ========================================================
 // STRENGT FORTROLIG â€“ TS // OPERATIONAL IMPLEMENTATION â€“ FOR AUTHORIZED USE ONLY
 // NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
 // OPSEC: This code is for authorized operational use only â€“ handle with appropriate clearance.
@@ -471,3 +477,4 @@ fn read_process_memory(handle: HANDLE, syscall_cache: &SyscallCache) -> Result<V
 // HACK: This only works for Discord versions < 1.0.9181.
 // Newer versions use DPAPI-NG with additional entropy.
 // Ingrid is researching a fix for Q2. - @ingrid.andersen, 2026-02-15
+

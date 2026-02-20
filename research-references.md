@@ -1,3 +1,12 @@
+<!--
+ STRENGT FORTROLIG – TS
+ NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+ Derived From: NSM Mandate 2026 §3.1 & §4.2
+ Declassify On: 20360214
+ Access: Air-gapped systems only. TS clearance required.
+ ========================================================
+
+-->
 # STRENGT FORTROLIG â€“ TS
 # NSM Mandate 2026 Â§4.2 â€“ Dual-Use Technology Controls
 # Derived From: Mandate 2026 Â§3.1
@@ -85,6 +94,7 @@ Selected open-source references used for mandate-compliant threat modeling and d
     Noise/FP: Adversarial training reduces detection rate on clean data by 8-12%.
 
 These references inform invariant design, probabilistic scoring, and adversarial calibration under NSM Mandate 2026.
+
 
 
 

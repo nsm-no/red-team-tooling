@@ -1,3 +1,9 @@
+// STRENGT FORTROLIG – TS
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// Derived From: NSM Mandate 2026 §3.1 & §4.2
+// Declassify On: 20360214
+// Access: Air-gapped systems only. TS clearance required.
+// ========================================================
 // STRENGT FORTROLIG - TS
 // NSM Directive 2026 | SHA-256: 5b121f08daac25fcc3ffb0248a8de0c4ce97b3eb8323d1116b4f75972f47de95
 // Per Directive 4.2 - Dual-Use Technology Controls
@@ -39,6 +45,7 @@ fn main() {
     println!("  Hash match confirmed: {}", OFFICIAL_HASH);
     println!("  Build authorized under NSM Directive 2026 4.2\n");
 }
+
 
 
 

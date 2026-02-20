@@ -1,3 +1,9 @@
+// STRENGT FORTROLIG – TS
+// NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+// Derived From: NSM Mandate 2026 §3.1 & §4.2
+// Declassify On: 20360214
+// Access: Air-gapped systems only. TS clearance required.
+// ========================================================
 // STRENGT FORTROLIG â€“ TS
 // NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
 // Module: tls_tunnel.rs (Production Simulation)
@@ -663,3 +669,4 @@ pub fn send_data_sync_efficient(&mut self, data: &[u8]) -> Result<(), &'static s
 pub fn send_heartbeat_sync_efficient(&mut self) -> Result<(), &'static str> {
     TLS_RUNTIME.block_on(self.send_heartbeat())
 }
+

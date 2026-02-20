@@ -1,3 +1,12 @@
+<!--
+ STRENGT FORTROLIG – TS
+ NSM Directive 2026-02 | SHA-256: f3a7b4c8d2e1a9f0b5c6d3e2a1f8c9b0
+ Derived From: NSM Mandate 2026 §3.1 & §4.2
+ Declassify On: 20360214
+ Access: Air-gapped systems only. TS clearance required.
+ ========================================================
+
+-->
 \# LLM Interaction Log â€“ TS Clearance Required
 
 \*\*Date:\*\* 2026-02-17
@@ -29,6 +38,7 @@
 // Detects MOV/JMP patches to EtwProviderTable function pointers
 
 // Validation: 99.3% accuracy against Fall 2025 test data
+
 
 
 
