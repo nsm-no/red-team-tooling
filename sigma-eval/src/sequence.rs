@@ -3,6 +3,7 @@
 // MITRE ATT&CK v18 detection framework component
 // Performance-optimized, air-gapped implementation per NSM Directive 2026-02 §4.2
 // Deterministic ordering enforced via BTreeMap and sorted vectors
+// Capability-poor deterministic sequence engine (no I/O, no network, no process execution)
 
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
@@ -12,18 +13,45 @@ use std::collections::BTreeMap;
 use std::sync::RwLock;
 use timeline_builder::model::TimelineEvent;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::time::Instant;
 use thiserror::Error;
+use timeline_builder::model::{Timeline, TimelineEvent};
 
 // Pre-compiled regex patterns for deterministic reuse with proper caching
 lazy_static! {
     static ref REGEX_CACHE: RwLock<BTreeMap<String, Regex>> = RwLock::new(BTreeMap::new());
+thread_local! {
+    static TIMEFRAME_CACHE: RefCell<BTreeMap<String, i64>> = const { RefCell::new(BTreeMap::new()) };
+    static SCRATCH_CHAIN: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
 }
 
 /// BLAKE3 hash for file integrity verification per FPP-5.1 Part 3.1 §6
 /// NSM-FPP-20260219-003: 5a3b9c8d4e1f2a5b6c7d8e9f0a1b2c3d4e5f67890123456789abcdef01234567
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum SequenceError {
+    #[error("invalid timeframe at line {line}, column {column}: {message}")]
+    InvalidTimeframe {
+        line: usize,
+        column: usize,
+        message: String,
+    },
+    #[error("sequence has {steps} steps; maximum supported is {max}")]
+    SequenceTooLong { steps: usize, max: usize },
+    #[error("insufficient events: need at least {required}, got {available}")]
+    InsufficientEvents { required: usize, available: usize },
+    #[error("time overflow while evaluating sequence")]
+    TimeOverflow,
+    #[error("step mismatch for selection '{selection}'")]
+    StepMismatch { selection: String },
+    #[error("sequence evaluation timed out after {timeout_us}us")]
+    SequenceTimeout { timeout_us: i64 },
+}
 
 /// Sigma rule structure representing complete detection logic
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SigmaRule {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logsource: Option<LogSource>,
@@ -34,6 +62,7 @@ pub struct SigmaRule {
 
 /// Log source specification for event filtering
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogSource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product: Option<String>,
@@ -45,6 +74,7 @@ pub struct LogSource {
 
 /// Complete detection structure with all selections and conditions
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Detection {
     #[serde(flatten)]
     pub selections: BTreeMap<String, Selection>,
@@ -53,6 +83,7 @@ pub struct Detection {
 
 /// Field selection with multiple operators
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Selection {
     #[serde(flatten)]
     pub fields: BTreeMap<String, FieldCondition>,
@@ -60,6 +91,7 @@ pub struct Selection {
 
 /// Field condition with operator chaining
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum FieldCondition {
     Single(ConditionValue),
@@ -68,6 +100,7 @@ pub enum FieldCondition {
 
 /// Condition value with operators
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ConditionValue {
     String(String),
@@ -85,21 +118,72 @@ pub enum ConditionValue {
 /// - "500ms" => 500_000
 /// - "5s"    => 5_000_000
 /// - "1m"    => 60_000_000
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MatchDetails {
+    pub log: Vec<String>,
+    pub selection_matches: BTreeMap<String, Vec<usize>>,
+    pub sequence_chain: Vec<SequenceChainPoint>,
+    pub chain_elapsed_us: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SequenceChainPoint {
+    pub selection: String,
+    pub event_index: usize,
+    pub ts_unix_micros: i64,
+    pub triggered_fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SequenceMatch {
+    pub chain: Vec<SequenceChainPoint>,
+    pub elapsed_us: i64,
+    pub attempted_paths: usize,
+    pub pruned_paths: usize,
+}
+
+const MAX_SEQUENCE_STEPS: usize = 4_096;
+
 pub fn kristoffersen_feb18_parse_timeframe_to_us(s: &str) -> Result<i64, String> {
+    kristoffersen_feb18_parse_timeframe_to_us_loc(s, 1, 1).map_err(|e| e.to_string())
+}
+
+pub fn kristoffersen_feb18_parse_timeframe_to_us_loc(
+    s: &str,
+    line: usize,
+    column: usize,
+) -> Result<i64, SequenceError> {
     let raw = s.trim();
     if raw.is_empty() {
         return Err("timeframe must be non-empty".to_string());
+        return Err(SequenceError::InvalidTimeframe {
+            line,
+            column,
+            message: "timeframe must be non-empty".to_string(),
+        });
+    }
+
+    if let Some(us) = TIMEFRAME_CACHE.with(|cache| cache.borrow().get(raw).copied()) {
+        return Ok(us);
     }
 
     // Determine suffix
     let (num_part, mult): (&str, i64) = if let Some(prefix) = raw.strip_suffix("ms") {
         (prefix, 1_000) // ms -> us
+        (prefix, 1_000)
     } else if let Some(prefix) = raw.strip_suffix('s') {
         (prefix, 1_000_000) // s -> us
+        (prefix, 1_000_000)
     } else if let Some(prefix) = raw.strip_suffix('m') {
         (prefix, 60 * 1_000_000) // m -> us
+        (prefix, 60_000_000)
     } else {
         return Err("timeframe must end with one of: ms, s, m".to_string());
+        return Err(SequenceError::InvalidTimeframe {
+            line,
+            column,
+            message: "timeframe suffix must be one of: ms, s, m".to_string(),
+        });
     };
 
     let n_str = num_part.trim();
@@ -111,9 +195,22 @@ pub fn kristoffersen_feb18_parse_timeframe_to_us(s: &str) -> Result<i64, String>
     let n: i64 = n_str
         .parse::<i64>()
         .map_err(|_| "timeframe numeric value must be an integer".to_string())?;
+    let n: i64 = num_part
+        .trim()
+        .parse()
+        .map_err(|_| SequenceError::InvalidTimeframe {
+            line,
+            column,
+            message: "timeframe value must be an integer".to_string(),
+        })?;
 
     if n < 0 {
         return Err("timeframe must be non-negative".to_string());
+        return Err(SequenceError::InvalidTimeframe {
+            line,
+            column,
+            message: "timeframe must be non-negative".to_string(),
+        });
     }
 
     // Prevent overflow (conservative)
@@ -121,6 +218,10 @@ pub fn kristoffersen_feb18_parse_timeframe_to_us(s: &str) -> Result<i64, String>
         .checked_mul(mult)
         .ok_or_else(|| "timeframe too large".to_string())?;
 
+    let us = n.checked_mul(mult).ok_or(SequenceError::TimeOverflow)?;
+    TIMEFRAME_CACHE.with(|cache| {
+        cache.borrow_mut().insert(raw.to_string(), us);
+    });
     Ok(us)
 }
 
@@ -132,10 +233,18 @@ pub fn kristoffersen_feb18_matches_logsource(
     let Some(logsource) = logsource else {
         return true; // No logsource specified means match all
     };
+pub fn kristoffersen_feb18_matches_logsource(event: &TimelineEvent, logsource: &Option<LogSource>) -> bool {
+    let Some(logsource) = logsource else { return true; };
 
     // Product must match if specified
     if let Some(product) = &logsource.product {
         if !matches_product(event, product) {
+        let known = match event.event_id {
+            4688 => "windows",
+            1 | 3 => "sysmon",
+            _ => "unknown",
+        };
+        if !known.eq_ignore_ascii_case(product) {
             return false;
         }
     }
@@ -143,6 +252,8 @@ pub fn kristoffersen_feb18_matches_logsource(
     // Service must match if specified
     if let Some(service) = &logsource.service {
         if !matches_service(event, service) {
+        let known = if event.event_id == 4688 { "security" } else { "sysmon" };
+        if !known.eq_ignore_ascii_case(service) {
             return false;
         }
     }
@@ -150,6 +261,8 @@ pub fn kristoffersen_feb18_matches_logsource(
     // Category must match if specified
     if let Some(category) = &logsource.category {
         if !matches_category(event, category) {
+        let known = if event.event_id == 4688 { "process_creation" } else { "unknown" };
+        if !known.eq_ignore_ascii_case(category) {
             return false;
         }
     }
@@ -167,6 +280,11 @@ fn matches_product(event: &TimelineEvent, product: &str) -> bool {
         _ => "unknown",
     };
     event_product == product
+pub fn kristoffersen_feb18_matches_selection(event: &TimelineEvent, selection: &Selection) -> bool {
+    selection.fields.iter().all(|(field, cond)| {
+        let Some(value) = get_event_field(event, field) else { return false; };
+        kristoffersen_feb18_matches_field_condition(value, cond)
+    })
 }
 
 /// Determine if event matches service specification
@@ -177,6 +295,10 @@ fn matches_service(event: &TimelineEvent, service: &str) -> bool {
         (4688, "security") => true,
         (3, "sysmon") => true,
         _ => false,
+pub fn kristoffersen_feb18_matches_field_condition(value: &str, condition: &FieldCondition) -> bool {
+    match condition {
+        FieldCondition::Single(cv) => matches_condition_value(value, cv),
+        FieldCondition::Multiple(cvs) => cvs.iter().any(|cv| matches_condition_value(value, cv)),
     }
 }
 
@@ -188,6 +310,9 @@ fn matches_category(event: &TimelineEvent, category: &str) -> bool {
         (4688, "process_creation") => true,
         (3, "process_creation") => true,
         _ => false,
+fn get_event_field<'a>(event: &'a TimelineEvent, field: &str) -> Option<&'a str> {
+    if field.eq_ignore_ascii_case("EventID") {
+        return None;
     }
 }
 
@@ -204,6 +329,8 @@ pub fn kristoffersen_feb18_matches_selection(
         if !kristoffersen_feb18_matches_field_condition(value, condition) {
             return false;
         }
+    if field.eq_ignore_ascii_case("Computer") || field.eq_ignore_ascii_case("Host") {
+        return Some(event.host.as_str());
     }
     true
 }
@@ -228,6 +355,8 @@ fn get_event_field(event: &TimelineEvent, field: &str) -> Option<&str> {
         "RegistryValueName" => event.registry_value_name.as_deref(),
         "Hash" => event.hash.as_deref(),
         _ => None,
+    if field.eq_ignore_ascii_case("ProcessGuid") {
+        return event.correlation.process_guid.as_deref();
     }
 }
 
@@ -242,7 +371,18 @@ pub fn kristoffersen_feb18_matches_field_condition(
             // OR condition across multiple values
             cvs.iter().any(|cv| matches_condition_value(value, cv))
         }
+    if field.eq_ignore_ascii_case("ParentProcessGuid") {
+        return event.correlation.parent_process_guid.as_deref();
     }
+    if field.eq_ignore_ascii_case("LogonId") {
+        return event.correlation.logon_id.as_deref();
+    }
+
+    event
+        .fields
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case(field))
+        .map(|(_, v)| v.as_str())
 }
 
 /// Helper to match a single condition value
@@ -342,6 +482,15 @@ fn matches_condition_value(value: &str, cv: &ConditionValue) -> bool {
             }
             true
         }
+        ConditionValue::String(s) => value.eq_ignore_ascii_case(s),
+        ConditionValue::Map(ops) => ops.iter().all(|(op, target)| match op.as_str() {
+            "contains" => value.to_lowercase().contains(&target.to_lowercase()),
+            "startswith" => value.to_lowercase().starts_with(&target.to_lowercase()),
+            "endswith" => value.to_lowercase().ends_with(&target.to_lowercase()),
+            "base64" => BASE64_STANDARD.encode(value).contains(target),
+            "re" => Regex::new(target).map(|re| re.is_match(value)).unwrap_or(false),
+            _ => false,
+        }),
     }
 }
 
@@ -358,6 +507,15 @@ fn compile_regex(pattern: &str) -> Option<&Regex> {
     } else {
         None
     }
+/// Backward-compatible chain search API used by matcher module.
+pub fn kristoffersen_feb18_find_sequence_chain(
+    events: &[TimelineEvent],
+    step_indices: &[Vec<usize>],
+    timeframe_us: i64,
+) -> Option<Vec<usize>> {
+    kristoffersen_feb18_find_sequence_chain_with_timeout(events, step_indices, timeframe_us, None)
+        .ok()
+        .flatten()
 }
 
 /// Parse condition string into condition tree
@@ -367,11 +525,24 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
     
     if tokens.is_empty() {
         return Err(ConditionParseError::EmptyCondition);
+pub fn kristoffersen_feb18_find_sequence_chain_with_timeout(
+    events: &[TimelineEvent],
+    step_indices: &[Vec<usize>],
+    timeframe_us: i64,
+    timeout_us: Option<i64>,
+) -> Result<Option<Vec<usize>>, SequenceError> {
+    if step_indices.is_empty() {
+        return Ok(Some(Vec::new()));
     }
     
     // Handle simple selection case
     if tokens.len() == 1 {
         return Ok(Condition::Selection(tokens[0].to_string()));
+    if step_indices.len() > MAX_SEQUENCE_STEPS {
+        return Err(SequenceError::SequenceTooLong {
+            steps: step_indices.len(),
+            max: MAX_SEQUENCE_STEPS,
+        });
     }
     
     // Handle "1 of" syntax
@@ -388,6 +559,13 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
         }
         
         return Ok(Condition::OneOf(selections));
+
+    let step_count = step_indices.len();
+    if events.len() < step_count {
+        return Err(SequenceError::InsufficientEvents {
+            required: step_count,
+            available: events.len(),
+        });
     }
     
     // Handle "all of" syntax
@@ -401,9 +579,39 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
             // Remove trailing commas if present
             let clean_token = token.trim_end_matches(',');
             selections.push(clean_token.to_string());
+
+    let begin = Instant::now();
+
+    let ordered_steps = heuristic_order_steps(step_indices);
+    let sorted_step_candidates: Vec<Vec<usize>> = ordered_steps
+        .iter()
+        .map(|(_, idxs)| sorted_by_event_time(events, idxs))
+        .collect();
+
+    let chain = SCRATCH_CHAIN.with(|scratch| {
+        let mut chain = scratch.borrow_mut();
+        chain.clear();
+        backtrack_chain(
+            events,
+            &sorted_step_candidates,
+            timeframe_us,
+            timeout_us,
+            begin,
+            0,
+            None,
+            &mut chain,
+        )
+        .map(|_| chain.clone())
+    })?;
+
+    if let Some(reordered) = chain {
+        let mut out = vec![0usize; reordered.len()];
+        for (internal_pos, (original_pos, _)) in ordered_steps.iter().enumerate() {
+            out[*original_pos] = reordered[internal_pos];
         }
         
         return Ok(Condition::AllOf(selections));
+        return Ok(Some(out));
     }
     
     // Handle "near" syntax (simplified for example)
@@ -423,6 +631,23 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
                 selections,
                 timeframe: timeframe_us,
             });
+
+    Ok(None)
+}
+
+fn backtrack_chain(
+    events: &[TimelineEvent],
+    steps: &[Vec<usize>],
+    timeframe_us: i64,
+    timeout_us: Option<i64>,
+    begin: Instant,
+    depth: usize,
+    first_ts: Option<i64>,
+    chain: &mut Vec<usize>,
+) -> Result<Option<()>, SequenceError> {
+    if let Some(limit_us) = timeout_us {
+        if begin.elapsed().as_micros() as i64 > limit_us {
+            return Err(SequenceError::SequenceTimeout { timeout_us: limit_us });
         }
     }
     
@@ -444,6 +669,26 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
                 // Remove trailing commas if present
                 let clean_token = token.trim_end_matches(',');
                 conditions.push(Condition::Selection(clean_token.to_string()));
+
+    if depth == steps.len() {
+        return Ok(Some(()));
+    }
+
+    let prev_idx = chain.last().copied();
+    let prev_ts = prev_idx.map(|i| events[i].ts_unix_micros);
+
+    for &candidate in &steps[depth] {
+        let ts = events
+            .get(candidate)
+            .map(|e| e.ts_unix_micros)
+            .ok_or_else(|| SequenceError::StepMismatch {
+                selection: format!("step-{}", depth),
+            })?;
+
+        if let Some(pidx) = prev_idx {
+            let pts = prev_ts.expect("prev_ts exists when prev_idx exists");
+            if ts < pts || (ts == pts && candidate <= pidx) {
+                continue;
             }
         }
     }
@@ -455,8 +700,38 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
         match current_op {
             ConditionOp::And => Ok(Condition::And(conditions)),
             ConditionOp::Or => Ok(Condition::Or(conditions)),
+
+        let first = first_ts.unwrap_or(ts);
+        let elapsed = ts.checked_sub(first).ok_or(SequenceError::TimeOverflow)?;
+        if elapsed > timeframe_us {
+            break; // sorted candidates => no later candidate can satisfy
         }
+
+        // Early-pruning bound: ensure each remaining step has at least one candidate <= deadline.
+        let deadline = first.checked_add(timeframe_us).ok_or(SequenceError::TimeOverflow)?;
+        if !remaining_steps_have_possible_candidate(events, steps, depth + 1, ts, deadline) {
+            continue;
+        }
+
+        chain.push(candidate);
+        if backtrack_chain(
+            events,
+            steps,
+            timeframe_us,
+            timeout_us,
+            begin,
+            depth + 1,
+            Some(first),
+            chain,
+        )?
+        .is_some()
+        {
+            return Ok(Some(()));
+        }
+        chain.pop();
     }
+
+    Ok(None)
 }
 
 /// Condition operator for expression parsing
@@ -464,6 +739,19 @@ fn parse_condition(condition_str: &str) -> Result<Condition, ConditionParseError
 enum ConditionOp {
     And,
     Or,
+fn remaining_steps_have_possible_candidate(
+    events: &[TimelineEvent],
+    steps: &[Vec<usize>],
+    start_step: usize,
+    after_ts: i64,
+    deadline: i64,
+) -> bool {
+    (start_step..steps.len()).all(|s| {
+        steps[s].iter().any(|idx| {
+            let ts = events[*idx].ts_unix_micros;
+            ts >= after_ts && ts <= deadline
+        })
+    })
 }
 
 /// Condition expression tree for rule evaluation
@@ -479,6 +767,14 @@ pub enum Condition {
         selections: Vec<String>,
         timeframe: i64,
     },
+fn sorted_by_event_time(events: &[TimelineEvent], indices: &[usize]) -> Vec<usize> {
+    let mut out = indices.to_vec();
+    out.sort_by(|a, b| {
+        let ea = events.get(*a).map(|e| e.ts_unix_micros).unwrap_or(i64::MAX);
+        let eb = events.get(*b).map(|e| e.ts_unix_micros).unwrap_or(i64::MAX);
+        (ea, *a).cmp(&(eb, *b))
+    });
+    out
 }
 
 /// Condition parsing errors
@@ -492,12 +788,22 @@ pub enum ConditionParseError {
     InvalidTimeframe,
     #[error("unsupported condition operator")]
     UnsupportedOperator,
+fn heuristic_order_steps(step_indices: &[Vec<usize>]) -> Vec<(usize, &Vec<usize>)> {
+    let mut out: Vec<(usize, &Vec<usize>)> = step_indices.iter().enumerate().collect();
+    out.sort_by_key(|(_, idxs)| idxs.len());
+    out
 }
 
 /// Evaluate condition against event timeline with detailed audit trail
 pub fn kristoffersen_feb18_evaluate_condition(
     rule: &SigmaRule,
     events: &[TimelineEvent],
+pub fn kristoffersen_feb18_find_sequence_match(
+    timeline: &Timeline,
+    selection_names: &[&str],
+    timeframe_us: i64,
+    selection_hits: &BTreeMap<String, Vec<usize>>,
+    timeout_us: Option<i64>,
     verbose: bool,
 ) -> (bool, Option<MatchDetails>) {
     let mut match_details = MatchDetails::new();
@@ -521,8 +827,23 @@ pub fn kristoffersen_feb18_evaluate_condition(
     if filtered_events.is_empty() {
         if verbose {
             match_details.log.push("No events matched logsource".to_string());
+) -> Result<Option<SequenceMatch>, SequenceError> {
+    let start = Instant::now();
+    let mut attempted_paths = 0usize;
+    let mut pruned_paths = 0usize;
+
+    let mut steps: Vec<Vec<usize>> = Vec::with_capacity(selection_names.len());
+    for sel in selection_names {
+        let candidates = selection_hits
+            .get(*sel)
+            .ok_or_else(|| SequenceError::StepMismatch {
+                selection: (*sel).to_string(),
+            })?;
+        if candidates.is_empty() {
+            return Ok(None);
         }
         return (false, Some(match_details));
+        steps.push(candidates.clone());
     }
 
     // Parse condition string
@@ -541,6 +862,9 @@ pub fn kristoffersen_feb18_evaluate_condition(
         &condition,
         &rule.detection.selections,
         &filtered_events,
+    let chain = kristoffersen_feb18_find_sequence_chain_with_timeout(
+        &timeline.events,
+        &steps,
         timeframe_us,
         &mut match_details,
         verbose,
@@ -548,6 +872,8 @@ pub fn kristoffersen_feb18_evaluate_condition(
 
     (result, Some(match_details))
 }
+        timeout_us,
+    )?;
 
 /// Recursive condition evaluation with audit trail
 fn evaluate_condition_recursive(
@@ -579,6 +905,7 @@ fn evaluate_condition_recursive(
                     }
                 }
             }
+    let Some(indices) = chain else { return Ok(None); };
 
             if !matched_indices.is_empty() {
                 if verbose {
@@ -678,6 +1005,18 @@ fn evaluate_condition_recursive(
                 }
             }
             false
+    let mut points: Vec<SequenceChainPoint> = Vec::with_capacity(indices.len());
+    for (step, idx) in indices.iter().enumerate() {
+        attempted_paths += 1;
+        let event = &timeline.events[*idx];
+        let mut triggers: Vec<String> = event
+            .fields
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect();
+        triggers.sort();
+        if verbose && triggers.is_empty() {
+            pruned_paths += 1;
         }
         Condition::Near {
             selections: selection_names,
@@ -697,6 +1036,21 @@ fn evaluate_condition_recursive(
                 indices.sort(); // Deterministic ordering
                 step_indices.push(indices);
             }
+        points.push(SequenceChainPoint {
+            selection: selection_names[step].to_string(),
+            event_index: *idx,
+            ts_unix_micros: event.ts_unix_micros,
+            triggered_fields: triggers,
+        });
+    }
+
+    let elapsed_us = if let (Some(first), Some(last)) = (points.first(), points.last()) {
+        last.ts_unix_micros
+            .checked_sub(first.ts_unix_micros)
+            .ok_or(SequenceError::TimeOverflow)?
+    } else {
+        0
+    };
 
             // Check if we can find a sequence chain
             let chain = kristoffersen_feb18_find_sequence_chain(events, &step_indices, *timeframe);
@@ -715,6 +1069,9 @@ fn evaluate_condition_recursive(
                 }
                 false
             }
+    if let Some(limit_us) = timeout_us {
+        if start.elapsed().as_micros() as i64 > limit_us {
+            return Err(SequenceError::SequenceTimeout { timeout_us: limit_us });
         }
     }
 }
@@ -725,12 +1082,70 @@ pub struct MatchDetails {
     pub log: Vec<String>,
     pub selection_matches: BTreeMap<String, Vec<usize>>,
     pub sequence_chain: Option<Vec<usize>>,
+    Ok(Some(SequenceMatch {
+        chain: points,
+        elapsed_us,
+        attempted_paths,
+        pruned_paths,
+    }))
 }
 
 impl MatchDetails {
     pub fn new() -> Self {
         Self::default()
+pub fn kristoffersen_feb18_find_all_sequences(
+    timeline: &Timeline,
+    selection_names: &[&str],
+    timeframe_us: i64,
+    selection_hits: &BTreeMap<String, Vec<usize>>,
+    timeout_us: Option<i64>,
+) -> Result<Vec<SequenceMatch>, SequenceError> {
+    if selection_names.is_empty() {
+        return Ok(Vec::new());
     }
+
+    let mut steps: Vec<Vec<usize>> = Vec::with_capacity(selection_names.len());
+    for sel in selection_names {
+        let Some(c) = selection_hits.get(*sel) else {
+            return Err(SequenceError::StepMismatch {
+                selection: (*sel).to_string(),
+            });
+        };
+        steps.push(sorted_by_event_time(&timeline.events, c));
+    }
+
+    let begin = Instant::now();
+    let mut out: Vec<SequenceMatch> = Vec::new();
+    let mut stack: Vec<usize> = Vec::new();
+
+    enumerate_all_sequences(
+        &timeline.events,
+        selection_names,
+        &steps,
+        timeframe_us,
+        timeout_us,
+        begin,
+        0,
+        None,
+        &mut stack,
+        &mut out,
+    )?;
+
+    out.sort_by(|a, b| {
+        let ka = a
+            .chain
+            .iter()
+            .map(|c| (c.ts_unix_micros, c.event_index))
+            .collect::<Vec<_>>();
+        let kb = b
+            .chain
+            .iter()
+            .map(|c| (c.ts_unix_micros, c.event_index))
+            .collect::<Vec<_>>();
+        ka.cmp(&kb)
+    });
+
+    Ok(out)
 }
 
 /// Find earliest deterministic sequence chain within timeframe.
@@ -751,16 +1166,42 @@ impl MatchDetails {
 pub fn kristoffersen_feb18_find_sequence_chain(
     events: &[(usize, &TimelineEvent)],
     step_indices: &[Vec<usize>],
+#[allow(clippy::too_many_arguments)]
+fn enumerate_all_sequences(
+    events: &[TimelineEvent],
+    selection_names: &[&str],
+    steps: &[Vec<usize>],
     timeframe_us: i64,
 ) -> Option<Vec<usize>> {
     if step_indices.is_empty() {
         return None;
+    timeout_us: Option<i64>,
+    begin: Instant,
+    depth: usize,
+    first_ts: Option<i64>,
+    stack: &mut Vec<usize>,
+    out: &mut Vec<SequenceMatch>,
+) -> Result<(), SequenceError> {
+    if let Some(limit_us) = timeout_us {
+        if begin.elapsed().as_micros() as i64 > limit_us {
+            return Err(SequenceError::SequenceTimeout { timeout_us: limit_us });
+        }
     }
 
     // If any step has zero matches, no chain can exist.
     for v in step_indices {
         if v.is_empty() {
             return None;
+    if depth == steps.len() {
+        let mut chain: Vec<SequenceChainPoint> = Vec::with_capacity(stack.len());
+        for (i, idx) in stack.iter().enumerate() {
+            let ev = &events[*idx];
+            chain.push(SequenceChainPoint {
+                selection: selection_names[i].to_string(),
+                event_index: *idx,
+                ts_unix_micros: ev.ts_unix_micros,
+                triggered_fields: Vec::new(),
+            });
         }
     }
 
@@ -792,6 +1233,30 @@ pub fn kristoffersen_feb18_find_sequence_chain(
                     ok = false;
                     break;
                 }
+        let elapsed_us = if let (Some(a), Some(b)) = (chain.first(), chain.last()) {
+            b.ts_unix_micros
+                .checked_sub(a.ts_unix_micros)
+                .ok_or(SequenceError::TimeOverflow)?
+        } else {
+            0
+        };
+
+        out.push(SequenceMatch {
+            chain,
+            elapsed_us,
+            attempted_paths: stack.len(),
+            pruned_paths: 0,
+        });
+        return Ok(());
+    }
+
+    let prev_idx = stack.last().copied();
+    for idx in &steps[depth] {
+        if let Some(prev) = prev_idx {
+            let pa = (events[prev].ts_unix_micros, prev);
+            let pb = (events[*idx].ts_unix_micros, *idx);
+            if pb <= pa {
+                continue;
             }
         }
 
@@ -805,10 +1270,33 @@ pub fn kristoffersen_feb18_find_sequence_chain(
             if last_ts - t0 <= timeframe_us {
                 return Some(chain);
             }
+        let first = first_ts.unwrap_or(events[*idx].ts_unix_micros);
+        let elapsed = events[*idx]
+            .ts_unix_micros
+            .checked_sub(first)
+            .ok_or(SequenceError::TimeOverflow)?;
+        if elapsed > timeframe_us {
+            break;
         }
+
+        stack.push(*idx);
+        enumerate_all_sequences(
+            events,
+            selection_names,
+            steps,
+            timeframe_us,
+            timeout_us,
+            begin,
+            depth + 1,
+            Some(first),
+            stack,
+            out,
+        )?;
+        stack.pop();
     }
 
     None
+    Ok(())
 }
 
 fn find_next_after_within(
@@ -824,6 +1312,13 @@ fn find_next_after_within(
         .1
         .ts_unix_micros;
     let deadline = t0.saturating_add(timeframe_us);
+/// Deterministic condition evaluator (minimal, selection-name tokens only).
+pub fn kristoffersen_feb18_evaluate_condition(
+    rule: &SigmaRule,
+    events: &[TimelineEvent],
+    verbose: bool,
+) -> (bool, Option<MatchDetails>) {
+    let mut details = MatchDetails::default();
 
     for &idx in candidates {
         let ts = events
@@ -831,32 +1326,82 @@ fn find_next_after_within(
             .find(|(i, _)| *i == idx)?
             .1
             .ts_unix_micros;
+    let filtered: Vec<(usize, &TimelineEvent)> = events
+        .iter()
+        .enumerate()
+        .filter(|(_, ev)| kristoffersen_feb18_matches_logsource(ev, &rule.logsource))
+        .collect();
 
         // Ensure ordered after prev in deterministic (ts, idx) ordering
         let after_prev = (ts > prev_ts) || (ts == prev_ts && idx > prev_idx);
         if !after_prev {
             continue;
+    if filtered.is_empty() {
+        if verbose {
+            details.log.push("No events matched logsource".to_string());
         }
+        return (false, Some(details));
+    }
 
         // Timeframe bound from start
         if ts > deadline {
             // Since candidates are sorted by (ts, idx), no later candidate can satisfy.
             return None;
+    let parsed = parse_condition_tokens(&rule.detection.condition);
+    let res = match parsed {
+        Ok(tokens) => tokens.into_iter().any(|name| {
+            let Some(sel) = rule.detection.selections.get(&name) else { return false; };
+            let hits: Vec<usize> = filtered
+                .iter()
+                .filter_map(|(idx, ev)| kristoffersen_feb18_matches_selection(ev, sel).then_some(*idx))
+                .collect();
+            if !hits.is_empty() {
+                details.selection_matches.insert(name, hits);
+                true
+            } else {
+                false
+            }
+        }),
+        Err(e) => {
+            if verbose {
+                details.log.push(e);
+            }
+            false
         }
+    };
 
         return Some(idx);
     }
 
     None
+    (res, Some(details))
 }
 
 /// Compile a Sigma rule from YAML
 pub fn kristoffersen_feb18_compile_rule(yaml: &str) -> Result<SigmaRule, SigmaRuleParseError> {
     serde_yaml::from_str(yaml).map_err(SigmaRuleParseError::YamlParse)
+fn parse_condition_tokens(condition: &str) -> Result<BTreeSet<String>, String> {
+    let mut out = BTreeSet::new();
+    for tok in condition.split(|c: char| c.is_whitespace() || c == '(' || c == ')') {
+        let t = tok.trim();
+        if t.is_empty() {
+            continue;
+        }
+        let tl = t.to_ascii_lowercase();
+        if tl == "and" || tl == "or" || tl == "not" || tl == "of" || tl == "all" || tl == "one" {
+            continue;
+        }
+        out.insert(t.to_string());
+    }
+    if out.is_empty() {
+        return Err("condition expression did not include selections".to_string());
+    }
+    Ok(out)
 }
 
 /// Parse error for Sigma rules
 #[derive(Error, Debug, PartialEq)]
+#[derive(Debug, Error)]
 pub enum SigmaRuleParseError {
     #[error("YAML parsing error: {0}")]
     YamlParse(#[from] serde_yaml::Error),
@@ -865,6 +1410,10 @@ pub enum SigmaRuleParseError {
 }
 
 /// Evaluate a Sigma rule against event timeline with detailed results
+pub fn kristoffersen_feb18_compile_rule(yaml: &str) -> Result<SigmaRule, SigmaRuleParseError> {
+    serde_yaml::from_str(yaml).map_err(SigmaRuleParseError::YamlParse)
+}
+
 pub fn kristoffersen_feb18_evaluate_rule(
     rule_yaml: &str,
     events: &[TimelineEvent],
@@ -889,9 +1438,11 @@ mod tests {
             .as_micros() as i64;
         now + (offset_ms as i64 * 1000)
     }
+    use timeline_builder::model::{Correlation, HostId, Timeline, TimelineEvent};
 
     // Helper to create test events
     fn create_test_event(id: u32, ts_offset_ms: u64, command_line: Option<&str>, image: Option<&str>) -> TimelineEvent {
+    fn make_event(idx: i64) -> TimelineEvent {
         TimelineEvent {
             event_id: id,
             ts_unix_micros: timestamp_us(ts_offset_ms),
@@ -910,11 +1461,17 @@ mod tests {
             registry_value_data: None,
             registry_value_name: None,
             hash: None,
+            host: HostId::WorkstationA,
+            ts_unix_micros: idx,
+            event_id: 4688,
+            correlation: Correlation::empty(),
+            fields: vec![("Image".to_string(), format!("proc{idx}"))],
         }
     }
 
     #[test]
     fn test_timeframe_parsing() {
+    fn timeframe_parsing_basic() {
         assert_eq!(kristoffersen_feb18_parse_timeframe_to_us("500ms").unwrap(), 500_000);
         assert_eq!(kristoffersen_feb18_parse_timeframe_to_us("5s").unwrap(), 5_000_000);
         assert_eq!(kristoffersen_feb18_parse_timeframe_to_us("1m").unwrap(), 60_000_000);
@@ -949,6 +1506,7 @@ mod tests {
         };
         
         assert!(kristoffersen_feb18_matches_selection(&event, &selection));
+        assert!(kristoffersen_feb18_parse_timeframe_to_us("5x").is_err());
     }
 
     #[test]
@@ -964,6 +1522,11 @@ mod tests {
         };
         
         assert!(kristoffersen_feb18_matches_selection(&event, &selection));
+    fn find_chain_within_window() {
+        let events = vec![make_event(1), make_event(2), make_event(3), make_event(7)];
+        let steps = vec![vec![0, 1], vec![2, 3]];
+        let chain = kristoffersen_feb18_find_sequence_chain(&events, &steps, 3).unwrap();
+        assert_eq!(chain, vec![0, 2]);
     }
 
     #[test]
@@ -976,9 +1539,23 @@ mod tests {
                     BTreeMap::from([("base64".to_string(), "d2luZG93cw==".to_string())])
                 ))
             )])
+    fn find_all_sequences_returns_deterministic_order() {
+        let timeline = Timeline {
+            scenario_id: "s".to_string(),
+            seed: 1,
+            scenario_seed: 1,
+            events: vec![make_event(1), make_event(2), make_event(3)],
         };
         
         assert!(kristoffersen_feb18_matches_selection(&event, &selection));
+        let mut hits = BTreeMap::new();
+        hits.insert("a".to_string(), vec![0, 1]);
+        hits.insert("b".to_string(), vec![2]);
+        let out = kristoffersen_feb18_find_all_sequences(&timeline, &["a", "b"], 10, &hits, None)
+            .unwrap();
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0].chain[0].event_index, 0);
+        assert_eq!(out[1].chain[0].event_index, 1);
     }
 
     #[test]
@@ -1124,10 +1701,20 @@ mod tests {
         let events = vec![
             create_test_event(4688, 0, Some("cmd.exe"), Some("C:\\Windows\\System32\\cmd.exe")),
             create_test_event(4688, 1000, Some("powershell.exe -c malicious"), Some("C:\\Windows\\System32\\powershell.exe")),
+    fn timeout_is_reported() {
+        let events = (0..10).map(make_event).collect::<Vec<_>>();
+        let steps = vec![
+            (0..10).collect::<Vec<_>>(),
+            (0..10).collect::<Vec<_>>(),
+            (0..10).collect::<Vec<_>>(),
         ];
         
         // Evaluate rule
         let (result, _) = kristoffersen_feb18_evaluate_rule(sigma_yaml, &events, false).unwrap();
         assert!(result);
+        let err = kristoffersen_feb18_find_sequence_chain_with_timeout(&events, &steps, 100, Some(0))
+            .unwrap_err();
+        assert!(matches!(err, SequenceError::SequenceTimeout { .. }));
     }
+}
 }
