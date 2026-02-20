@@ -1,3 +1,10 @@
+; ========================================================
+; APT-grade C2 Beacon – AES-GCM HTTPS, DNS/ICMP fallback, jittered beaconing
+; File: beacon.asm
+; Created: 2026-02-20
+; Purpose: x64 shellcode
+; WARNING: Weaponized code – handle with extreme care.
+; ========================================================
 ; -----------------------------------------------------------------------------
 ; APT-grade Beacon Payload (x64)
 ; Full-featured C2 agent with AES-GCM encrypted HTTPS communications,

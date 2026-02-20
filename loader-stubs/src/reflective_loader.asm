@@ -1,3 +1,10 @@
+; ========================================================
+; Reflective DLL Loader – maps DLLs from memory, resolves imports, calls DllMain
+; File: reflective_loader.asm
+; Created: 2026-02-20
+; Purpose: x64 shellcode
+; WARNING: Weaponized code – handle with extreme care.
+; ========================================================
 ; ============================================================================
 ; Reflective DLL Loader Module (x64)
 ; Fully weaponized, position-independent, null-free shellcode.

