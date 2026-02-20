@@ -181,6 +181,26 @@ Under NSM Directive §4.2 and air-gapped conditions, red-cell activities must:
 3. **Monitor for CrowdStrike sensor version anomalies** – downgrades indicate adversary presence
 4. **Test Charlotte AI evasion** in air-gapped lab using adversarial ML techniques
 
+### 7.5 Defensive Infrastructure Threat Model (Level 4.2-lib Artifacts)
+
+Production-grade defensive tooling (sigma-eval, telemetry-core, continuous-monitoring, etc.) is governed under FPP Level 4.2-lib.
+
+**Primary Adversary Risks (Defensive Libraries):**
+
+| Risk Category              | Threat Description                                      | Mitigation (FPP 4.2-lib)                          | Residual Risk |
+|----------------------------|---------------------------------------------------------|----------------------------------------------------|---------------|
+| Parser / Deserialization   | Malicious Sigma YAML → panic, infinite loop, OOM       | Bounded recursion, depth limits, safe YAML parsing | Low           |
+| Sequence / Matcher DoS     | Deeply nested sequences or regex backtracking bomb      | SIMD-accelerated bounded matching, timeout guards  | Low           |
+| False Negative Injection   | Adversary crafts rules evading detection logic          | Fuzzing + invariant testing (correct matching)     | Medium        |
+| Supply-Chain (deps)        | Compromised crate dependencies                          | Cargo.lock pinned + SBOM in crate-level manifest   | Low           |
+| Resource Exhaustion        | Large rule sets → memory/CPU explosion                  | Streaming / chunked processing, configurable limits| Low           |
+
+**Self-Red-Team Focus (4.2-lib post-verification):**  
+- Fuzz inputs with afl++ / libFuzzer (YAML, sequences)  
+- Invariants: no panics, no unbounded growth, correct render/matching  
+- Reference: simulation-harness.md for test cases
+
+These risks are significantly lower than offensive primitives → justifies relaxed ceremony while maintaining production-grade hardening.
 ---
 
 **Next Update Required:** Q3 2026 or upon significant Windows/Falcon changes  
