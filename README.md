@@ -30,17 +30,18 @@ graph TD
     D --> E[Exfil Channel<br>DNS / ICMP / TLS covert]
     E --> A[Data exfiltrated back to Operator]
 
-Modulesbeacon-core — Memory-resident C2 implant (Rust) – Level 5.1
-edr-evasion — AMSI/ETW bypass & evasion – Level 5.1
-exfil-channels — DNS/ICMP/TLS covert exfil – Level 5.1
-loader-stubs — Reflective loaders – Level 5.1
-sigma-eval — Sigma rule parser/matcher/sequence/renderer – Level 4.2-lib (production-grade defensive)
-telemetry-core — Telemetry & monitoring – Level 4.2-lib
+Modulesbeacon-core — Memory-resident C2 implant (Rust) – Level 5.1  
+edr-evasion — AMSI/ETW bypass & evasion – Level 5.1  
+exfil-channels — DNS/ICMP/TLS covert exfil – Level 5.1  
+loader-stubs — Reflective loaders – Level 5.1  
+sigma-eval — Sigma rule parser/matcher/sequence/renderer – Level 4.2-lib (production-grade defensive)  
+telemetry-core — Telemetry & monitoring – Level 4.2-lib  
 continuous-monitoring — Drift detection & monitoring – Level 4.2-lib
 
-Red-team modules: Simulation/research only.
-Blue-team libraries: Approved for nationwide production after 4.2-lib validation.Module Stubs / Quick Examples
+Red-team modules: Simulation/research use only.
+Blue-team libraries: Approved for nationwide production after 4.2-lib validation & air-gapped fuzzing.Module Stubs / Quick Examples
 Controlled illustrative snippets only. Real payloads are compartmented, air-gapped and mandate-protected.
+
 
 
 These updates ensure the repo documentation reflects **maximum hardening for both red-team emulation** (Level 5.1) and **maximum production-grade defensive tooling** (Level 4.2-lib) under state-wide (nationwide) requirements.
