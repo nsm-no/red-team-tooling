@@ -1,3 +1,9 @@
+# NSM-FPP-20260218-001
+# OPERATOR: LT Kristoffersen
+# TIMESTAMP: 2026-02-20T08:25:31+01:00
+# CLASSIFICATION: STRENGT FORTROLIG – TS
+# HONEYTOKEN: This file contains unique identifier 0x7a9b3c8d
+# LICENSE: MIT
 #!/usr/bin/env python3
 """
 Configuration Loader and Validator
